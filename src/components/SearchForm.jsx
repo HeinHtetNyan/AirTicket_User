@@ -1,16 +1,51 @@
 import { useEffect, useState } from "react";
 
+const airportMap = {
+  bangkok: "BKK",
+  bkk: "BKK",
+  yangon: "RGN",
+  rgn: "RGN",
+  mandalay: "MDL",
+  mdl: "MDL",
+  singapore: "SIN",
+  sin: "SIN",
+  tokyo: "NRT",
+  nrt: "NRT",
+  narita: "NRT",
+  seoul: "ICN",
+  icn: "ICN",
+  london: "LHR",
+  lhr: "LHR",
+  paris: "CDG",
+  cdg: "CDG",
+};
+
+const getAirportCode = (input) => {
+  if (!input) return "";
+
+  const value = input.trim().toLowerCase();
+
+  if (airportMap[value]) {
+    return airportMap[value];
+  }
+
+  const matchedCity = Object.keys(airportMap).find((city) =>
+    value.includes(city)
+  );
+
+  if (matchedCity) {
+    return airportMap[matchedCity];
+  }
+
+  return input.trim().toUpperCase();
+};
+
 const makeInitialSearchData = (initialValues) => ({
   from: initialValues?.origin || initialValues?.from || "",
   to: initialValues?.destination || initialValues?.to || "",
   departureDate:
-    initialValues?.departure_date ||
-    initialValues?.departureDate ||
-    "",
-  returnDate:
-    initialValues?.return_date ||
-    initialValues?.returnDate ||
-    "",
+    initialValues?.departure_date || initialValues?.departureDate || "",
+  returnDate: initialValues?.return_date || initialValues?.returnDate || "",
   passengers: Math.max(
     1,
     Number(initialValues?.adults || initialValues?.passengers || 1)
@@ -86,9 +121,12 @@ const SearchForm = ({
   const handleSearch = (e) => {
     e.preventDefault();
 
+    const originCode = getAirportCode(searchData.from);
+    const destinationCode = getAirportCode(searchData.to);
+
     const payload = {
-      origin: searchData.from.trim().toUpperCase(),
-      destination: searchData.to.trim().toUpperCase(),
+      origin: originCode,
+      destination: destinationCode,
       departure_date: searchData.departureDate,
       adults: Number(searchData.passengers),
       trip_type: tripType,
@@ -98,6 +136,7 @@ const SearchForm = ({
       payload.return_date = searchData.returnDate;
     }
 
+    console.log("SEARCH PAYLOAD:", payload);
     onSearch(payload);
   };
 
@@ -126,9 +165,7 @@ const SearchForm = ({
         <form onSubmit={handleSearch}>
           <div
             className={`grid grid-cols-1 gap-4 ${
-              tripType === "round-trip"
-                ? "md:grid-cols-5"
-                : "md:grid-cols-4"
+              tripType === "round-trip" ? "md:grid-cols-5" : "md:grid-cols-4"
             }`}
           >
             <div>
@@ -181,11 +218,8 @@ const SearchForm = ({
                     placeholder="Jan 15"
                     onClick={() => {
                       const el = document.getElementById("departure-date");
-                      if (el?.showPicker) {
-                        el.showPicker();
-                      } else if (el) {
-                        el.click();
-                      }
+                      if (el?.showPicker) el.showPicker();
+                      else if (el) el.click();
                     }}
                     className="w-full bg-transparent outline-none text-base text-slate-700 placeholder:text-gray-400 cursor-pointer"
                   />
@@ -222,11 +256,8 @@ const SearchForm = ({
                       placeholder="Jan 22"
                       onClick={() => {
                         const el = document.getElementById("return-date");
-                        if (el?.showPicker) {
-                          el.showPicker();
-                        } else if (el) {
-                          el.click();
-                        }
+                        if (el?.showPicker) el.showPicker();
+                        else if (el) el.click();
                       }}
                       className="w-full bg-transparent outline-none text-base text-slate-700 placeholder:text-gray-400 cursor-pointer"
                     />

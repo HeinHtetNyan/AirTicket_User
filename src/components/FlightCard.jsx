@@ -10,10 +10,15 @@ const FlightCard = ({ flight, onSelect }) => {
   const priceMin = snapshot?.price_estimate_min_mmk || flight?.final_price_mmk;
   const priceMax = snapshot?.price_estimate_max_mmk || flight?.final_price_mmk;
 
+  const formetMMK = (value) => {
+    if (!value) return "0 MMK";
+    return `MMK ${Number(value).toLocaleString()}`;
+  };
+
   const priceDisplay =
     priceMin && priceMax && priceMin !== priceMax
-      ? `${priceMin} - ${priceMax}`
-      : `${priceMax || priceMin || flight?.final_price_mmk || 0}`;
+      ? `${formetMMK(priceMin)} - ${formetMMK(priceMax)}`
+      : formetMMK(priceMax || priceMin || flight?.final_price_mmk || 0);
 
   const formatTime = (iso) => {
     if (!iso) return "--:--";
