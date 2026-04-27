@@ -2,6 +2,12 @@ import { Link, useNavigate } from "react-router-dom";
 import { useEffect, useMemo, useState } from "react";
 import { getCustomerMe, getUserBookings } from "../utils/api";
 
+const Card = ({ children, className = "" }) => (
+  <div className={`bg-white rounded-2xl border border-blue-100 shadow-sm ${className}`}>
+    {children}
+  </div>
+);
+
 export default function Profile() {
   const navigate = useNavigate();
   const [customer, setCustomer] = useState(null);
@@ -15,7 +21,6 @@ export default function Profile() {
           getCustomerMe(),
           getUserBookings(),
         ]);
-
         setCustomer(customerData || null);
         setBookings(Array.isArray(bookingsData) ? bookingsData : []);
       } catch (error) {
@@ -35,8 +40,6 @@ export default function Profile() {
     return Number.isFinite(n) ? n : 0;
   };
 
-  const formatUSD = (value) => "$" + toNumber(value).toFixed(2);
-
   const formatDateTime = (value) => {
     if (!value) return "-";
     const d = new Date(value);
@@ -51,306 +54,329 @@ export default function Profile() {
     return d.toLocaleDateString();
   };
 
-  const formatDuration = (minutes) => {
-    const m = Number(minutes);
-    if (!Number.isFinite(m) || m <= 0) return "-";
-    const h = Math.floor(m / 60);
-    const r = m % 60;
-    if (h === 0) return r + "m";
-    if (r === 0) return h + "h";
-    return h + "h " + r + "m";
-  };
-
-  const formatMMK = (value) => "MMK " + toNumber(value).toLocaleString();
+  const formatMMK = (value) => `MMK ${toNumber(value).toLocaleString()}`;
 
   const getFlightInfo = (booking) => {
     const snap = booking?.flight_snapshot || {};
     const outbound = snap.outbound || null;
     const inbound = snap.inbound || null;
 
-    if (outbound || inbound) {
-      const outRoute = outbound
-        ? (outbound.origin || "-") + " -> " + (outbound.destination || "-")
-        : "-";
-      const inRoute = inbound
-        ? (inbound.origin || "-") + " -> " + (inbound.destination || "-")
-        : "-";
+    const priceMinMMK = snap?.price_estimate_min_mmk || booking.final_price_mmk;
+    const priceMaxMMK = snap?.price_estimate_max_mmk || booking.final_price_mmk;
 
-      const route =
-        outbound && inbound
-          ? outRoute + " / " + inRoute
-          : outRoute !== "-"
-            ? outRoute
-            : inRoute;
-
-      const airline =
-        (outbound && outbound.airline) ||
-        (inbound && inbound.airline) ||
-        snap.airline ||
-        "-";
-
-      const flightNumber =
-        (outbound && outbound.flight_number) ||
-        (inbound && inbound.flight_number) ||
-        snap.flight_number ||
-        "-";
-
-      const departure =
-        (outbound && outbound.departure_time) ||
-        (inbound && inbound.departure_time) ||
-        snap.departure_time ||
-        "-";
-
-      const arrival =
-        (inbound && inbound.arrival_time) ||
-        (outbound && outbound.arrival_time) ||
-        snap.arrival_time ||
-        "-";
-
-      const totalDuration =
-        toNumber(outbound && outbound.duration_minutes) +
-        toNumber(inbound && inbound.duration_minutes);
-
-      const priceMinMMK = snap?.price_estimate_min_mmk || booking.final_price_mmk;
-      const priceMaxMMK = snap?.price_estimate_max_mmk || booking.final_price_mmk;
-      const estimatePriceMMK = priceMinMMK && priceMaxMMK && priceMinMMK !== priceMaxMMK
-        ? formatMMK(priceMinMMK) + " - " + formatMMK(priceMaxMMK)
+    const estimatePriceMMK =
+      priceMinMMK && priceMaxMMK && priceMinMMK !== priceMaxMMK
+        ? `${formatMMK(priceMinMMK)} - ${formatMMK(priceMaxMMK)}`
         : formatMMK(priceMaxMMK || priceMinMMK || 0);
 
+    if (outbound || inbound) {
+      const outRoute = outbound
+        ? `${outbound.origin || "-"} → ${outbound.destination || "-"}`
+        : "-";
+
+      const inRoute = inbound
+        ? `${inbound.origin || "-"} → ${inbound.destination || "-"}`
+        : "-";
+
       return {
-        airline,
-        flightNumber,
-        route,
-        departure,
-        arrival,
-        duration: totalDuration > 0 ? formatDuration(totalDuration) : "-",
-        basePrice: snap.base_price_usd,
-        finalPrice: booking.final_price_usd ?? snap.final_price_usd,
+        flightNumber:
+          outbound?.flight_number ||
+          inbound?.flight_number ||
+          snap.flight_number ||
+          "-",
+        route: outbound && inbound ? `${outRoute} / ${inRoute}` : outRoute,
+        departure:
+          outbound?.departure_time ||
+          inbound?.departure_time ||
+          snap.departure_time ||
+          "-",
         estimatePriceMMK,
       };
     }
 
-    const priceMinMMK = snap?.price_estimate_min_mmk || booking.final_price_mmk;
-    const priceMaxMMK = snap?.price_estimate_max_mmk || booking.final_price_mmk;
-    const estimatePriceMMK = priceMinMMK && priceMaxMMK && priceMinMMK !== priceMaxMMK
-      ? formatMMK(priceMinMMK) + " - " + formatMMK(priceMaxMMK)
-      : formatMMK(priceMaxMMK || priceMinMMK || 0);
-
     return {
-      airline: snap.airline || "-",
       flightNumber: snap.flight_number || "-",
-      route: snap.route || ((snap.origin || "-") + " -> " + (snap.destination || "-")),
+      route: snap.route || `${snap.origin || "-"} → ${snap.destination || "-"}`,
       departure: snap.departure_time || "-",
-      arrival: snap.arrival_time || "-",
-      duration: formatDuration(snap.duration_minutes),
-      basePrice: snap.base_price_usd,
-      finalPrice: booking.final_price_usd ?? snap.final_price_usd,
       estimatePriceMMK,
     };
   };
 
   const stats = useMemo(() => {
-    const totalSpentUSD = bookings.reduce((sum, b) => sum + toNumber(b.final_price_usd), 0);
-    const totalSpentMMK = bookings.reduce((sum, b) => sum + toNumber(b.final_price_mmk), 0);
+    const totalSpentMMK = bookings.reduce(
+      (sum, b) => sum + toNumber(b.final_price_mmk),
+      0
+    );
+
     const cancelled = bookings.filter(
       (b) => String(b.status || "").toUpperCase() === "CANCELLED"
     ).length;
-    const avgUSD = bookings.length ? totalSpentUSD / bookings.length : 0;
+
     const avgMMK = bookings.length ? totalSpentMMK / bookings.length : 0;
 
-    return { totalSpentUSD, totalSpentMMK, cancelled, avgUSD, avgMMK };
+    return { totalSpentMMK, cancelled, avgMMK };
   }, [bookings]);
 
   const getBookingStatusClass = (status) => {
     const s = String(status || "").toUpperCase();
+
     if (s === "COMPLETED" || s === "CONFIRMED") {
-      return "border-green-200 bg-green-50 text-green-700";
+      return "bg-green-50 text-green-700 border border-green-200";
     }
+
     if (s === "CANCELLED") {
-      return "border-red-200 bg-red-50 text-red-700";
+      return "bg-red-50 text-red-600 border border-red-200";
     }
-    if (s === "PENDING") {
-      return "border-yellow-200 bg-yellow-50 text-yellow-700";
+
+    if (s === "PENDING" || s === "PROCESSING") {
+      return "bg-yellow-50 text-yellow-700 border border-yellow-200";
     }
-    return "border-gray-300 bg-gray-100 text-gray-700";
+
+    return "bg-gray-100 text-gray-600 border border-gray-200";
   };
 
   const getPaymentStatusClass = (status) => {
     const s = String(status || "").toUpperCase();
+
     if (s === "PAID") {
-      return "border-green-200 bg-green-50 text-green-700";
+      return "bg-green-50 text-green-700 border border-green-200";
     }
+
     if (s === "FAILED") {
-      return "border-red-200 bg-red-50 text-red-700";
+      return "bg-red-50 text-red-600 border border-red-200";
     }
+
     if (s === "PENDING" || s === "UNPAID") {
-      return "border-yellow-200 bg-yellow-50 text-yellow-700";
+      return "bg-yellow-50 text-yellow-700 border border-yellow-200";
     }
-    return "border-gray-300 bg-gray-100 text-gray-700";
+
+    return "bg-gray-100 text-gray-600 border border-gray-200";
   };
 
   if (loading) {
     return (
-      <div className="mx-auto w-full max-w-6xl bg-white px-6 py-8 text-sm text-gray-600 md:px-10">
-        Loading profile...
+      <div className="min-h-screen bg-[#eaf4ff] flex items-center justify-center">
+        <p className="text-sm text-slate-500 animate-pulse">Loading profile...</p>
       </div>
     );
   }
 
   return (
-    <div className="mx-auto w-full max-w-6xl bg-white px-6 py-8 text-gray-800 md:px-10">
-      <div className="mb-7 flex items-center justify-between">
-        <Link
-          to="/"
-          className="text-2xl leading-none text-black transition hover:text-gray-600"
-          aria-label="Back"
-        >
-          ←
-        </Link>
+    <div className="min-h-screen bg-[#eaf4ff] py-8 px-4">
+      <div className="max-w-5xl mx-auto space-y-7">
+        <div className="flex items-center justify-between">
+          <Link
+            to="/"
+            className="text-slate-600 hover:text-slate-900 text-2xl leading-none"
+            aria-label="Back"
+          >
+            ←
+          </Link>
 
-        <div className="flex gap-3">
           <Link
             to="/edit-info"
-            className="bg-gray-800 px-5 py-2 text-sm font-medium text-white transition hover:bg-gray-900"
+            className="bg-slate-900 hover:bg-slate-700 text-white text-sm font-semibold px-6 py-3 rounded-lg transition"
           >
             Edit info
           </Link>
         </div>
-      </div>
 
-      <div className="border-b border-gray-200 pb-7">
-        <div className="flex items-center gap-4">
-          <div>
-            <h2 className="text-3xl font-normal leading-tight text-gray-800">
-              {customer?.full_name || "Customer"}
-            </h2>
-            <p className="mt-1 text-sm text-gray-500">{customer?.email || "-"}</p>
-          </div>
-        </div>
-      </div>
+        <Card className="p-7">
+          <div className="flex items-center gap-5">
+            <div className="w-16 h-16 rounded-full bg-blue-50 border border-blue-200 flex items-center justify-center">
+              <svg
+                className="w-9 h-9 text-blue-500"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                viewBox="0 0 24 24"
+              >
+                <circle cx="12" cy="8" r="4" />
+                <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" strokeLinecap="round" />
+              </svg>
+            </div>
 
-      <section className="border-b border-gray-200 py-7">
-        <h3 className="mb-5 text-2xl font-normal text-gray-800">Personal Information</h3>
-
-        <div className="grid grid-cols-1 gap-x-14 gap-y-5 md:grid-cols-2">
-          <div>
-            <p className="mb-1 text-xs text-gray-500">Customer ID</p>
-            <p className="text-base text-gray-800">{customer?.id || "-"}</p>
-          </div>
-
-          <div>
-            <p className="mb-1 text-xs text-gray-500">Email Address</p>
-            <p className="text-base text-gray-800">{customer?.email || "-"}</p>
-          </div>
-
-          <div>
-            <p className="mb-1 text-xs text-gray-500">Phone Number</p>
-            <p className="text-base text-gray-800">{customer?.phone || "-"}</p>
+            <div>
+              <h2 className="text-2xl font-bold text-slate-800">
+                {customer?.full_name || customer?.name || "Customer"}
+              </h2>
+              <p className="text-sm text-slate-400 mt-1">
+                {customer?.email || "-"}
+              </p>
+            </div>
           </div>
 
-          <div>
-            <p className="mb-1 text-xs text-gray-500">Registration Date</p>
-            <p className="text-base text-gray-800">{formatDate(customer?.created_at)}</p>
+          <div className="border-t border-gray-100 mt-6"></div>
+        </Card>
+
+        <Card className="p-7">
+          <h3 className="text-lg font-bold text-slate-700 mb-8">
+            Personal Information
+          </h3>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-28 gap-y-7">
+            <div>
+              <p className="text-xs text-slate-400 mb-2">Customer ID</p>
+              <p className="text-sm text-slate-800 break-all">
+                {customer?.id || "-"}
+              </p>
+            </div>
+
+            <div>
+              <p className="text-xs text-slate-400 mb-2">Email Address</p>
+              <p className="text-sm text-slate-800">
+                {customer?.email || "-"}
+              </p>
+            </div>
+
+            <div>
+              <p className="text-xs text-slate-400 mb-2">Phone Number</p>
+              <p className="text-sm text-slate-800">
+                {customer?.phone || customer?.phone_number || "-"}
+              </p>
+            </div>
+
+            <div>
+              <p className="text-xs text-slate-400 mb-2">Registration Date</p>
+              <p className="text-sm text-slate-800">
+                {formatDate(customer?.created_at)}
+              </p>
+            </div>
           </div>
-        </div>
-      </section>
+        </Card>
 
-      <section className="border-b border-gray-200 py-7">
-        <h3 className="mb-4 text-2xl font-normal text-gray-800">Booking Statistics</h3>
+        <Card className="p-7">
+          <h3 className="text-lg font-bold text-slate-700 mb-6">
+            Booking Statistics
+          </h3>
 
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <div className="border border-gray-200 rounded-lg px-6 py-6">
-            <p className="mb-2 text-xs font-semibold text-gray-500 uppercase">Total Bookings</p>
-            <p className="text-4xl font-bold text-gray-800">{bookings.length}</p>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-slate-50 border border-gray-100 rounded-xl p-4">
+            {[
+              { label: "Total Bookings", value: bookings.length },
+              {
+                label: "Total Spent",
+                value: `MMK ${stats.totalSpentMMK.toLocaleString()}`,
+              },
+              { label: "Cancelled", value: stats.cancelled },
+              {
+                label: "Average Booking",
+                value: `MMK ${Math.round(stats.avgMMK).toLocaleString()}`,
+              },
+            ].map((stat) => (
+              <div key={stat.label} className="px-3 py-3">
+                <p className="text-xs text-slate-400 mb-3">{stat.label}</p>
+                <p className="text-2xl font-bold text-slate-800 break-all">
+                  {stat.value}
+                </p>
+              </div>
+            ))}
+          </div>
+        </Card>
+
+        <Card className="overflow-hidden">
+          <div className="p-7">
+            <h3 className="text-lg font-bold text-slate-700">Recent Bookings</h3>
           </div>
 
-          <div className="border border-gray-200 rounded-lg px-6 py-6">
-            <p className="mb-2 text-xs font-semibold text-gray-500 uppercase">Cancelled</p>
-            <p className="text-4xl font-bold text-gray-800">{stats.cancelled}</p>
-          </div>
-        </div>
-      </section>
-
-      <section className="py-7">
-        <h3 className="mb-4 text-2xl font-normal text-gray-800">Recent Bookings</h3>
-
-        <div className="border border-gray-200">
-          <table className="w-full text-sm">
-            <thead className="bg-gray-100 text-gray-600">
-              <tr>
-                <th className="p-3 text-left font-medium whitespace-nowrap">Booking ID</th>
-                <th className="p-3 text-left font-medium whitespace-nowrap">Flight No.</th>
-                <th className="p-3 text-left font-medium whitespace-nowrap">Route</th>
-                <th className="p-3 text-left font-medium whitespace-nowrap">Departure</th>
-                <th className="p-3 text-left font-medium whitespace-nowrap">Adults</th>
-                <th className="p-3 text-left font-medium whitespace-nowrap">Estimate Price (MMK)</th>
-                <th className="p-3 text-left font-medium whitespace-nowrap">My Status</th>
-                <th className="p-3 text-left font-medium whitespace-nowrap">Payment Status</th>
-                <th className="p-3 text-left font-medium whitespace-nowrap">Actions</th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {bookings.length === 0 && (
-                <tr>
-                  <td className="p-4 text-center text-gray-500" colSpan={10}>
-                    No bookings found
-                  </td>
-                </tr>
-              )}
-
-              {bookings.map((b) => {
-                const f = getFlightInfo(b);
-
-                return (
-                  <tr key={b.booking_id} className="border-t border-gray-200 text-gray-700">
-                    <td className="p-3">
-                      <div className="max-w-[190px] break-all text-xs">{b.booking_code || "-"}</div>
-                    </td>
-                    <td className="p-3">{f.flightNumber}</td>
-                    <td className="p-3">{f.route}</td>
-                    <td className="p-3 whitespace-nowrap">{formatDateTime(f.departure)}</td>
-                    <td className="p-3">{b.adults ?? 1}</td>
-                    <td className="p-3 text-xs">{f.estimatePriceMMK}</td>
-
-                    <td className="p-3">
-                      <span
-                        className={
-                          "inline-flex items-center rounded border px-2 py-0.5 text-xs " +
-                          getBookingStatusClass(b.status)
-                        }
-                      >
-                        {b.status || "-"}
-                      </span>
-                    </td>
-
-                    <td className="p-3">
-                      <span
-                        className={
-                          "inline-flex items-center rounded border px-2 py-0.5 text-xs " +
-                          getPaymentStatusClass(b.payment_status)
-                        }
-                      >
-                        {b.payment_status || "-"}
-                      </span>
-                    </td>
-
-                    <td className="p-3">
-                      <button
-                        type="button"
-                        onClick={() => navigate("/bookings/" + b.booking_id)}
-                        className="inline-flex items-center rounded border border-gray-300 bg-white px-3 py-1 text-xs font-medium text-gray-700 transition hover:bg-gray-100"
-                      >
-                        View
-                      </button>
-                    </td>
+          {bookings.length === 0 ? (
+            <p className="text-sm text-slate-400 text-center py-8">
+              No bookings found
+            </p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm min-w-[760px]">
+                <thead className="bg-slate-50">
+                  <tr>
+                    <th className="text-left text-xs text-slate-500 font-semibold py-4 px-5">
+                      Booking ID
+                    </th>
+                    <th className="text-left text-xs text-slate-500 font-semibold py-4 px-5">
+                      Flight No.
+                    </th>
+                    <th className="text-left text-xs text-slate-500 font-semibold py-4 px-5">
+                      Route
+                    </th>
+                    <th className="text-left text-xs text-slate-500 font-semibold py-4 px-5">
+                      Departure
+                    </th>
+                    <th className="text-left text-xs text-slate-500 font-semibold py-4 px-5">
+                      Adults
+                    </th>
+                    <th className="text-left text-xs text-slate-500 font-semibold py-4 px-5">
+                      Estimate Price (MMK)
+                    </th>
+                    <th className="text-left text-xs text-slate-500 font-semibold py-4 px-5">
+                      Status
+                    </th>
+                    <th className="text-left text-xs text-slate-500 font-semibold py-4 px-5">
+                      Payment
+                    </th>
+                    <th className="text-left text-xs text-slate-500 font-semibold py-4 px-5">
+                      Action
+                    </th>
                   </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </section>
+                </thead>
+
+                <tbody className="divide-y divide-gray-100">
+                  {bookings.map((b) => {
+                    const f = getFlightInfo(b);
+
+                    return (
+                      <tr key={b.booking_id} className="hover:bg-blue-50/50">
+                        <td className="py-4 px-5 text-xs text-slate-700 break-all">
+                          {b.booking_code || "-"}
+                        </td>
+                        <td className="py-4 px-5 text-xs text-slate-700">
+                          {f.flightNumber}
+                        </td>
+                        <td className="py-4 px-5 text-xs text-slate-700">
+                          {f.route}
+                        </td>
+                        <td className="py-4 px-5 text-xs text-slate-600 whitespace-nowrap">
+                          {formatDateTime(f.departure)}
+                        </td>
+                        <td className="py-4 px-5 text-xs text-slate-700">
+                          {b.adults ?? 1}
+                        </td>
+                        <td className="py-4 px-5 text-xs text-slate-700">
+                          {f.estimatePriceMMK}
+                        </td>
+                        <td className="py-4 px-5">
+                          <span
+                            className={`inline-flex rounded-md px-3 py-1 text-xs font-medium ${getBookingStatusClass(
+                              b.status
+                            )}`}
+                          >
+                            {b.status || "-"}
+                          </span>
+                        </td>
+                        <td className="py-4 px-5">
+                          <span
+                            className={`inline-flex rounded-md px-3 py-1 text-xs font-medium ${getPaymentStatusClass(
+                              b.payment_status
+                            )}`}
+                          >
+                            {b.payment_status || "-"}
+                          </span>
+                        </td>
+                        <td className="py-4 px-5">
+                          <button
+                            type="button"
+                            onClick={() => navigate("/bookings/" + b.booking_id)}
+                            className="rounded-md border border-gray-200 bg-white px-4 py-1.5 text-xs font-medium text-slate-600 hover:bg-blue-50 hover:text-blue-600 transition"
+                          >
+                            View
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </Card>
+      </div>
     </div>
   );
 }

@@ -30,14 +30,14 @@ const ResultsSection = ({
           <div className="lg:col-span-1">
             <div className="space-y-3 sticky top-24">
               <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
-                <h3 className="text-sm font-semibold text-slate-700 mb-2">
+                <h3 className="text-sm font-semibold text-blue-700 mb-2">
                   Message us
                 </h3>
                 <p className="text-xs text-slate-400">For more information</p>
               </div>
 
               <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
-                <h3 className="text-sm font-semibold text-slate-700 mb-2">
+                <h3 className="text-sm font-semibold text-blue-700 mb-2">
                   Call us
                 </h3>
                 <p className="text-xs text-slate-400">For more information</p>

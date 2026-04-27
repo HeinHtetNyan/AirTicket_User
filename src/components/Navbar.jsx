@@ -32,7 +32,7 @@ const NavBar = () => {
             <img
               src="/Logo.png"
               alt="Infinity logo"
-              className="w-10 h-10 object-contain"
+              className="w-15 h-15 object-contain"
             />
             <span className="text-[20px] font-semibold text-[#1f5d99]">
               InfinityDigital

@@ -56,18 +56,24 @@ const PassportIcon = (
   </svg>
 );
 
-const inputClass =
-  "w-full rounded border border-gray-300 bg-white p-2 text-sm text-gray-800 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:bg-gray-100";
+const ArrowIcon = (
+  <svg className="w-4 h-4 inline mx-2 text-gray-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+    <path d="M5 12h14M13 6l6 6-6 6" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
 
-const inputWithIconClass =
-  "w-full rounded border border-gray-300 bg-white pl-10 pr-3 py-2 text-sm text-gray-800 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:bg-gray-100";
+const inputBase =
+  "w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-800 placeholder-gray-400 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100 disabled:bg-gray-50 disabled:text-gray-500";
+
+const inputWithIconBase =
+  "w-full rounded-lg border border-gray-200 bg-white pl-10 pr-3 py-2.5 text-sm text-gray-800 placeholder-gray-400 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100 disabled:bg-gray-50 disabled:text-gray-500";
 
 const InputWithIcon = ({ icon, className = "", ...props }) => (
   <div className="relative">
     <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
       {icon}
     </span>
-    <input {...props} className={`${inputWithIconClass} ${className}`} />
+    <input {...props} className={`${inputWithIconBase} ${className}`} />
   </div>
 );
 
@@ -75,22 +81,14 @@ const formatTime = (iso) => {
   if (!iso) return "--:--";
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "--:--";
-  return d.toLocaleTimeString([], {
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  });
+  return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false });
 };
 
 const formatDate = (iso) => {
   if (!iso) return "--";
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "--";
-  return d.toLocaleDateString([], {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-  });
+  return d.toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" });
 };
 
 const formatDateForInputDisplay = (dateValue) => {
@@ -106,85 +104,44 @@ const formatDateForInputDisplay = (dateValue) => {
 const getFlightDisplayData = (flight) => {
   const snapshot = flight?.flight_snapshot || flight;
   const isRoundTrip = flight?.type === "ROUND_TRIP";
-
   const segment = isRoundTrip && snapshot?.outbound ? snapshot.outbound : snapshot;
 
-  const fromCode =
-    segment?.origin ||
-    segment?.from ||
-    segment?.fromCode ||
-    segment?.departure_airport_code ||
-    segment?.departure_iata ||
-    segment?.origin_code ||
-    "RGN";
-
-  const toCode =
-    segment?.destination ||
-    segment?.to ||
-    segment?.toCode ||
-    segment?.arrival_airport_code ||
-    segment?.arrival_iata ||
-    segment?.destination_code ||
-    "BKK";
-
-  const fromName =
-    segment?.origin_city ||
-    segment?.from_city ||
-    segment?.departure_city ||
-    segment?.origin_name ||
-    segment?.fromName ||
-    fromCode;
-
-  const toName =
-    segment?.destination_city ||
-    segment?.to_city ||
-    segment?.arrival_city ||
-    segment?.destination_name ||
-    segment?.toName ||
-    toCode;
-
-  const departureIso = segment?.departure_time;
-  const arrivalIso = segment?.arrival_time;
+  const fromCode = segment?.origin || segment?.from || segment?.fromCode || segment?.departure_airport_code || segment?.departure_iata || segment?.origin_code || "RGN";
+  const toCode = segment?.destination || segment?.to || segment?.toCode || segment?.arrival_airport_code || segment?.arrival_iata || segment?.destination_code || "BKK";
+  const fromName = segment?.origin_city || segment?.from_city || segment?.departure_city || segment?.origin_name || segment?.fromName || fromCode;
+  const toName = segment?.destination_city || segment?.to_city || segment?.arrival_city || segment?.destination_name || segment?.toName || toCode;
 
   return {
     fromName,
     fromCode,
     toName,
     toCode,
-    date: formatDate(departureIso),
-    departureTime: formatTime(departureIso),
-    arrivalTime: formatTime(arrivalIso),
+    date: formatDate(segment?.departure_time),
+    departureTime: formatTime(segment?.departure_time),
+    arrivalTime: formatTime(segment?.arrival_time),
   };
 };
 
-export default function BookingForm({
-  selectedFlights = [],
-  tripType,
-  initialAdults = 1,
-}) {
+// Card wrapper
+const Card = ({ children, className = "" }) => (
+  <div className={`bg-white rounded-2xl border border-gray-100 shadow-sm p-6 ${className}`}>
+    {children}
+  </div>
+);
+
+export default function BookingForm({ selectedFlights = [], tripType, initialAdults = 1 }) {
   const navigate = useNavigate();
   const normalizedAdults = Math.max(1, Number(initialAdults) || 1);
 
   const [contact, setContact] = useState({
-    givenName: "",
-    lastName: "",
-    email: "",
-    country: "",
-    phone: "",
-    id: null,
-    createdAt: null,
+    givenName: "", lastName: "", email: "", country: "", phone: "", id: null, createdAt: null,
   });
-
   const [contactExists, setContactExists] = useState(false);
   const [isLoadingContact, setIsLoadingContact] = useState(true);
   const [error, setError] = useState(null);
   const [isSavingContact, setIsSavingContact] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
-
-  const [passenger, setPassenger] = useState(() =>
-    Array.from({ length: normalizedAdults }, createEmptyPassenger)
-  );
-
+  const [passenger, setPassenger] = useState(() => Array.from({ length: normalizedAdults }, createEmptyPassenger));
   const [isConfirming, setIsConfirming] = useState(false);
 
   useEffect(() => {
@@ -192,7 +149,6 @@ export default function BookingForm({
       try {
         setIsLoadingContact(true);
         const existingContact = await getMyContact();
-
         setContact({
           givenName: existingContact.given_name,
           lastName: existingContact.last_name,
@@ -202,15 +158,13 @@ export default function BookingForm({
           id: existingContact.id,
           createdAt: existingContact.created_at,
         });
-
         setContactExists(true);
-      } catch (err) {
+      } catch {
         setContactExists(false);
       } finally {
         setIsLoadingContact(false);
       }
     };
-
     fetchContact();
   }, []);
 
@@ -223,16 +177,13 @@ export default function BookingForm({
     try {
       setIsSavingContact(true);
       setError(null);
-
-      const contactData = {
+      await createContact({
         given_name: contact.givenName,
         last_name: contact.lastName,
         email: contact.email,
         country_of_residence: contact.country,
         phone_number: contact.phone,
-      };
-
-      await createContact(contactData);
+      });
       setContactExists(true);
       setIsEditMode(false);
     } catch (err) {
@@ -246,16 +197,13 @@ export default function BookingForm({
     try {
       setIsSavingContact(true);
       setError(null);
-
-      const contactData = {
+      await updateContact({
         given_name: contact.givenName,
         last_name: contact.lastName,
         email: contact.email,
         country_of_residence: contact.country,
         phone_number: contact.phone,
-      };
-
-      await updateContact(contactData);
+      });
       setIsEditMode(false);
     } catch (err) {
       setError(err.response?.data?.message || "Failed to update contact");
@@ -265,9 +213,9 @@ export default function BookingForm({
   };
 
   const handlePassengerChange = (index, e) => {
-    const updatedPassengers = [...passenger];
-    updatedPassengers[index][e.target.name] = e.target.value;
-    setPassenger(updatedPassengers);
+    const updated = [...passenger];
+    updated[index][e.target.name] = e.target.value;
+    setPassenger(updated);
   };
 
   const handleAddPassenger = () => {
@@ -277,63 +225,29 @@ export default function BookingForm({
 
   const handleConfirm = async () => {
     if (isConfirming) return;
-
     try {
       setError(null);
-
-      console.log("===== CONFIRM BOOKING CLICKED =====");
-      console.log("CONTACT:", contact);
-      console.log("PASSENGERS:", passenger);
-      console.log("SELECTED FLIGHTS:", selectedFlights);
-      console.log("TRIP TYPE:", tripType);
-
-      if (!contactExists) {
-        setError("Please create a contact first");
-        return;
-      }
-
-      if (!passenger.length || !passenger[0].givenName) {
-        setError("Please add at least one passenger");
-        return;
-      }
-
+      if (!contactExists) { setError("Please create a contact first"); return; }
+      if (!passenger.length || !passenger[0].givenName) { setError("Please add at least one passenger"); return; }
       setIsConfirming(true);
 
       const outboundFlight = selectedFlights[0];
-
-      if (!outboundFlight) {
-        setError("No flight selected");
-        return;
-      }
+      if (!outboundFlight) { setError("No flight selected"); return; }
 
       const flightSnapshot = outboundFlight.flight_snapshot || outboundFlight;
-
       const bookingPayload = {
-        type:
-          outboundFlight.type ||
-          (tripType === "round-trip" ? "ROUND_TRIP" : "ONE_WAY"),
+        type: outboundFlight.type || (tripType === "round-trip" ? "ROUND_TRIP" : "ONE_WAY"),
         adults: passenger.length,
-        bundle_key:
-          outboundFlight.bundle_key || outboundFlight.external_flight_id,
-        airline_code:
-          flightSnapshot.outbound?.airline_code || flightSnapshot.airline_code,
-        flight_number:
-          flightSnapshot.outbound?.flight_number || flightSnapshot.flight_number,
+        bundle_key: outboundFlight.bundle_key || outboundFlight.external_flight_id,
+        airline_code: flightSnapshot.outbound?.airline_code || flightSnapshot.airline_code,
+        flight_number: flightSnapshot.outbound?.flight_number || flightSnapshot.flight_number,
         flight_snapshot: flightSnapshot,
       };
 
-      console.log("BOOKING PAYLOAD:", bookingPayload);
-
       const bookingResponse = await createBooking(bookingPayload);
+      if (!bookingResponse.booking_id) { setError("Failed to get booking ID"); return; }
 
-      console.log("BOOKING RESPONSE:", bookingResponse);
-
-      if (!bookingResponse.booking_id) {
-        setError("Failed to get booking ID");
-        return;
-      }
-
-      const passengersPayload = {
+      await addPassengers(bookingResponse.booking_id, {
         passengers: passenger.map((p) => ({
           booking_id: bookingResponse.booking_id,
           given_name: p.givenName,
@@ -344,17 +258,10 @@ export default function BookingForm({
           nationality: p.nationality,
           phone_number: p.phone,
         })),
-      };
-
-      console.log("PASSENGERS PAYLOAD:", passengersPayload);
-
-      await addPassengers(bookingResponse.booking_id, passengersPayload);
-
-      console.log("===== BOOKING SUCCESS =====");
+      });
 
       navigate("/profile");
     } catch (err) {
-      console.error("BOOKING ERROR:", err?.response?.data || err);
       setError(err.response?.data?.message || "Failed to complete booking");
     } finally {
       setIsConfirming(false);
@@ -363,23 +270,18 @@ export default function BookingForm({
 
   if (isLoadingContact) {
     return (
-      <div className="bg-gray-100 min-h-screen py-10 flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-lg text-gray-600">Loading booking information...</p>
-        </div>
+      <div className="min-h-screen bg-blue-50 flex items-center justify-center">
+        <p className="text-gray-500 text-sm animate-pulse">Loading booking information...</p>
       </div>
     );
   }
 
   if (!selectedFlights || selectedFlights.length === 0) {
     return (
-      <div className="bg-gray-100 min-h-screen py-10 flex items-center justify-center">
-        <div className="bg-red-50 border border-red-200 p-8 rounded text-red-600">
-          <p className="text-lg font-medium">No flight selected</p>
-          <button
-            onClick={() => navigate(-1)}
-            className="mt-4 text-red-600 underline"
-          >
+      <div className="min-h-screen bg-blue-50 flex items-center justify-center">
+        <div className="bg-white rounded-2xl shadow-sm border border-red-100 p-10 text-center">
+          <p className="text-red-500 font-medium">No flight selected</p>
+          <button onClick={() => navigate(-1)} className="mt-4 text-sm text-blue-500 underline">
             Go back and select a flight
           </button>
         </div>
@@ -388,117 +290,86 @@ export default function BookingForm({
   }
 
   return (
-    <div className="bg-gray-100 min-h-screen py-10">
-      <div className="max-w-5xl mx-auto bg-white border border-gray-300 p-8 text-gray-800">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-medium">Review & Passenger Info</h1>
+    <div className="min-h-screen bg-blue-50 py-10 px-4">
+      <div className="max-w-3xl mx-auto space-y-5">
+
+        {/* Header */}
+        <div className="flex justify-between items-center mb-2">
+          <h1 className="text-2xl font-bold text-gray-900">Review & Passenger Info</h1>
           <button
             onClick={() => navigate(-1)}
-            className="text-sm text-gray-500 underline"
+            className="text-sm text-blue-500 hover:text-blue-600 font-medium transition"
           >
-            Change flight
+            Change Flight
           </button>
         </div>
 
-        <div className="bg-blue-50 border border-blue-200 p-4 mb-8 rounded">
-          <p className="text-sm text-blue-700">
-            Booking will be created once you confirm with all passenger details
-            included.
-          </p>
-        </div>
-
-        <div className="border border-gray-300 p-6 mb-8">
-          <h2 className="text-sm font-medium mb-4">Your Selected Flight</h2>
-
-          {selectedFlights.map((f, i) => {
-            const display = getFlightDisplayData(f);
-
-            return (
-              <div key={i}>
-                <div className="flex justify-between items-center py-6">
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 bg-gray-200 border"></div>
-                    <p className="text-sm text-gray-700">
-                      {display.fromName} ({display.fromCode})
-                      <span className="mx-4 text-gray-400">——</span>
-                      {display.toName} ({display.toCode})
-                    </p>
-                  </div>
-
-                  <p className="text-xs text-gray-500 whitespace-nowrap">
-                    {display.date} &nbsp;&nbsp;
-                    {display.departureTime} - {display.arrivalTime}
+        {/* Selected Flights */}
+        <Card>
+          <h2 className="text-sm font-semibold text-gray-700 mb-4">Your Selected Flight</h2>
+          <div className="divide-y divide-gray-100">
+            {selectedFlights.map((f, i) => {
+              const d = getFlightDisplayData(f);
+              return (
+                <div key={i} className="flex items-center justify-between py-3 first:pt-0 last:pb-0">
+                  <p className="text-sm font-medium text-gray-800">
+                    {d.fromName} ({d.fromCode})
+                    {ArrowIcon}
+                    {d.toName} ({d.toCode})
+                  </p>
+                  <p className="text-xs text-gray-500 whitespace-nowrap ml-4">
+                    {d.date}&nbsp;&nbsp;{d.departureTime} – {d.arrivalTime}
                   </p>
                 </div>
+              );
+            })}
+          </div>
+        </Card>
 
-                {i !== selectedFlights.length - 1 && (
-                  <div className="border-t border-gray-200"></div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-
-        <div className="border border-gray-300 p-6 mb-8">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-sm font-medium">Contact details</h2>
-
+        {/* Contact Details */}
+        <Card>
+          <div className="flex justify-between items-center mb-1">
+            <h2 className="text-sm font-semibold text-gray-700">Contact details</h2>
             {contactExists && !isEditMode && (
-              <button
-                onClick={() => setIsEditMode(true)}
-                className="text-xs text-blue-500 underline"
-              >
-                Edit
-              </button>
+              <button onClick={() => setIsEditMode(true)} className="text-xs text-blue-500 hover:underline font-medium">Edit</button>
             )}
-
             {isEditMode && (
-              <button
-                onClick={() => setIsEditMode(false)}
-                className="text-xs text-gray-500 underline"
-              >
-                Cancel
-              </button>
+              <button onClick={() => setIsEditMode(false)} className="text-xs text-gray-400 hover:underline">Cancel</button>
             )}
           </div>
-
-          <p className="text-xs text-gray-500 mb-6">
-            This is where your confirmation will be sent
-          </p>
+          <p className="text-xs text-gray-400 mb-5">This is where your confirmation will be sent</p>
 
           {error && (
-            <div className="bg-red-50 text-red-600 text-xs p-3 mb-4 rounded">
+            <div className="bg-red-50 border border-red-100 text-red-500 text-xs p-3 mb-4 rounded-lg">
               {error}
             </div>
           )}
 
-          <div className="grid md:grid-cols-2 gap-6">
+          <div className="grid md:grid-cols-2 gap-4">
             <div>
-              <label className="text-xs block mb-1">Given names</label>
+              <label className="text-xs text-gray-500 block mb-1.5">Given names</label>
               <input
                 name="givenName"
                 value={contact.givenName}
                 placeholder="Enter given names"
                 onChange={handleContactChange}
                 disabled={isSavingContact || (contactExists && !isEditMode)}
-                className={`${inputClass} disabled:bg-gray-100`}
+                className={inputBase}
               />
             </div>
-
             <div>
-              <label className="text-xs block mb-1">Last name</label>
+              <label className="text-xs text-gray-500 block mb-1.5">Last name</label>
               <input
                 name="lastName"
                 value={contact.lastName}
                 placeholder="Enter last name"
                 onChange={handleContactChange}
                 disabled={isSavingContact || (contactExists && !isEditMode)}
-                className={`${inputClass} disabled:bg-gray-100`}
+                className={inputBase}
               />
             </div>
-
             <div>
-              <label className="text-xs block mb-1">Email</label>
+              <label className="text-xs text-gray-500 block mb-1.5">Email</label>
               <InputWithIcon
                 icon={EmailIcon}
                 name="email"
@@ -506,14 +377,10 @@ export default function BookingForm({
                 placeholder="Enter email"
                 onChange={handleContactChange}
                 disabled={isSavingContact || (contactExists && !isEditMode)}
-                className="disabled:bg-gray-100"
               />
             </div>
-
             <div>
-              <label className="text-xs block mb-1">
-                Country / region of residence
-              </label>
+              <label className="text-xs text-gray-500 block mb-1.5">Country / region of residence</label>
               <InputWithIcon
                 icon={LocationIcon}
                 name="country"
@@ -521,12 +388,10 @@ export default function BookingForm({
                 placeholder="Enter Country / region"
                 onChange={handleContactChange}
                 disabled={isSavingContact || (contactExists && !isEditMode)}
-                className="disabled:bg-gray-100"
               />
             </div>
-
-            <div className="md:col-span-2 mt-6 bg-gray-50 p-4 border border-gray-300 rounded">
-              <label className="text-xs block mb-1">Phone number</label>
+            <div className="md:col-span-2">
+              <label className="text-xs text-gray-500 block mb-1.5">Phone number</label>
               <InputWithIcon
                 icon={PhoneIcon}
                 name="phone"
@@ -534,38 +399,23 @@ export default function BookingForm({
                 placeholder="+1 (555) 000-0000"
                 onChange={handleContactChange}
                 disabled={isSavingContact || (contactExists && !isEditMode)}
-                className="disabled:bg-gray-100"
               />
             </div>
           </div>
 
           {contactExists && contact.id && (
-            <div className="grid md:grid-cols-2 gap-6 mt-6 pt-6 border-t border-gray-300">
+            <div className="grid md:grid-cols-2 gap-4 mt-5 pt-5 border-t border-gray-100">
               <div>
-                <label className="text-xs block mb-1 text-gray-600">
-                  Contact ID
-                </label>
-                <input
-                  type="text"
-                  value={contact.id}
-                  disabled
-                  className={`${inputClass} bg-gray-50`}
-                />
+                <label className="text-xs text-gray-400 block mb-1.5">Contact ID</label>
+                <input type="text" value={contact.id} disabled className={inputBase} />
               </div>
-
               <div>
-                <label className="text-xs block mb-1 text-gray-600">
-                  Created At
-                </label>
+                <label className="text-xs text-gray-400 block mb-1.5">Created At</label>
                 <input
                   type="text"
-                  value={
-                    contact.createdAt
-                      ? new Date(contact.createdAt).toLocaleString()
-                      : ""
-                  }
+                  value={contact.createdAt ? new Date(contact.createdAt).toLocaleString() : ""}
                   disabled
-                  className={`${inputClass} bg-gray-50`}
+                  className={inputBase}
                 />
               </div>
             </div>
@@ -575,7 +425,7 @@ export default function BookingForm({
             <button
               onClick={handleCreateContact}
               disabled={isSavingContact}
-              className="mt-4 bg-blue-600 text-white px-6 py-2 text-sm rounded hover:bg-blue-700 disabled:bg-gray-400"
+              className="mt-5 bg-blue-500 hover:bg-blue-600 text-white px-6 py-2.5 text-sm rounded-lg font-medium transition disabled:opacity-50"
             >
               {isSavingContact ? "Saving..." : "Create Contact"}
             </button>
@@ -585,45 +435,42 @@ export default function BookingForm({
             <button
               onClick={handleUpdateContact}
               disabled={isSavingContact}
-              className="mt-4 bg-blue-600 text-white px-6 py-2 text-sm rounded hover:bg-blue-700 disabled:bg-gray-400"
+              className="mt-5 bg-blue-500 hover:bg-blue-600 text-white px-6 py-2.5 text-sm rounded-lg font-medium transition disabled:opacity-50"
             >
               {isSavingContact ? "Saving..." : "Save Changes"}
             </button>
           )}
-        </div>
+        </Card>
 
+        {/* Passengers */}
         {passenger.map((p, index) => (
-          <div key={index} className="border border-gray-300 p-6 mb-6">
-            <h2 className="text-sm font-medium mb-1">Passenger {index + 1}</h2>
-            <p className="text-xs text-gray-500 mb-4">
-              Passenger details must match your passport or photo ID
-            </p>
+          <Card key={index}>
+            <h2 className="text-sm font-semibold text-gray-700 mb-1">Passenger {index + 1}</h2>
+            <p className="text-xs text-gray-400 mb-5">Passenger details must match your passport or photo ID</p>
 
-            <div className="grid md:grid-cols-2 gap-6">
+            <div className="grid md:grid-cols-2 gap-4">
               <div>
-                <label className="text-xs block mb-1">Given names</label>
+                <label className="text-xs text-gray-500 block mb-1.5">Given names</label>
                 <input
                   name="givenName"
                   value={p.givenName}
                   onChange={(e) => handlePassengerChange(index, e)}
                   placeholder="Enter given names"
-                  className={inputClass}
+                  className={inputBase}
                 />
               </div>
-
               <div>
-                <label className="text-xs block mb-1">Last name</label>
+                <label className="text-xs text-gray-500 block mb-1.5">Last name</label>
                 <input
                   name="lastName"
                   value={p.lastName}
                   onChange={(e) => handlePassengerChange(index, e)}
                   placeholder="Enter last name"
-                  className={inputClass}
+                  className={inputBase}
                 />
               </div>
-
               <div>
-                <label className="text-xs block mb-1">Passport Number</label>
+                <label className="text-xs text-gray-500 block mb-1.5">Passport Number</label>
                 <InputWithIcon
                   icon={PassportIcon}
                   name="passport"
@@ -632,28 +479,25 @@ export default function BookingForm({
                   placeholder="Enter Passport Number"
                 />
               </div>
-
               <div>
-                <label className="text-xs block mb-1">Gender on ID</label>
+                <label className="text-xs text-gray-500 block mb-1.5">Gender on ID</label>
                 <select
                   name="gender"
                   value={p.gender}
                   onChange={(e) => handlePassengerChange(index, e)}
-                  className={inputClass}
+                  className={inputBase}
                 >
                   <option value="">Select Gender</option>
                   <option value="MALE">MALE</option>
                   <option value="FEMALE">FEMALE</option>
                 </select>
               </div>
-
               <div>
-                <label className="text-xs block mb-1">Date of Birth</label>
+                <label className="text-xs text-gray-500 block mb-1.5">Date of Birth</label>
                 <div className="relative">
                   <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
                     {CalendarIcon}
                   </span>
-
                   <input
                     type="text"
                     value={formatDateForInputDisplay(p.dob)}
@@ -661,33 +505,24 @@ export default function BookingForm({
                     readOnly
                     onClick={() => {
                       const el = document.getElementById(`dob-${index}`);
-                      if (el?.showPicker) {
-                        el.showPicker();
-                      } else if (el) {
-                        el.click();
-                      }
+                      if (el?.showPicker) el.showPicker();
+                      else if (el) el.click();
                     }}
-                    className={inputWithIconClass + " cursor-pointer"}
+                    className={inputWithIconBase + " cursor-pointer"}
                   />
-
                   <input
                     id={`dob-${index}`}
                     type="date"
                     value={p.dob}
-                    onChange={(e) =>
-                      handlePassengerChange(index, {
-                        target: { name: "dob", value: e.target.value },
-                      })
-                    }
+                    onChange={(e) => handlePassengerChange(index, { target: { name: "dob", value: e.target.value } })}
                     className="absolute inset-0 opacity-0 pointer-events-none"
                     tabIndex={-1}
                     aria-hidden="true"
                   />
                 </div>
               </div>
-
               <div>
-                <label className="text-xs block mb-1">Nationality</label>
+                <label className="text-xs text-gray-500 block mb-1.5">Nationality</label>
                 <InputWithIcon
                   icon={LocationIcon}
                   name="nationality"
@@ -696,9 +531,8 @@ export default function BookingForm({
                   placeholder="Enter Nationality"
                 />
               </div>
-
-              <div className="md:col-span-2 mt-6 bg-gray-50 p-4 border border-gray-300 rounded">
-                <label className="text-xs block mb-1">Phone number</label>
+              <div className="md:col-span-2">
+                <label className="text-xs text-gray-500 block mb-1.5">Phone number</label>
                 <InputWithIcon
                   icon={PhoneIcon}
                   name="phone"
@@ -708,31 +542,30 @@ export default function BookingForm({
                 />
               </div>
             </div>
-          </div>
+          </Card>
         ))}
 
-        <div className="flex justify-between items-center mt-10">
+        {/* Footer Actions */}
+        <div className="flex justify-between items-center pt-2 pb-8">
           <button
             onClick={() => navigate(-1)}
-            className="text-sm text-gray-500 hover:underline"
+            className="text-sm text-gray-400 hover:text-gray-600 transition"
           >
-            Cancel
+            Cancel Booking
           </button>
-
-          <div className="flex gap-4">
+          <div className="flex gap-3">
             {passenger.length < normalizedAdults && (
               <button
                 onClick={handleAddPassenger}
-                className="bg-black text-white px-8 py-2 text-sm rounded hover:bg-gray-900"
+                className="bg-white border border-gray-200 text-gray-700 px-6 py-2.5 text-sm rounded-lg font-medium hover:bg-gray-50 transition shadow-sm"
               >
                 Add Passenger
               </button>
             )}
-
             <button
               onClick={handleConfirm}
               disabled={isConfirming}
-              className="bg-black text-white px-8 py-2 text-sm rounded disabled:bg-gray-400 hover:bg-gray-900"
+              className="bg-blue-500 hover:bg-blue-600 text-white px-8 py-2.5 text-sm rounded-lg font-medium transition disabled:opacity-50 shadow-sm"
             >
               {isConfirming ? "Confirming..." : "Confirm Booking"}
             </button>
