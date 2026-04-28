@@ -10,7 +10,10 @@ export function AuthProvider({ children }) {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    localStorage.removeItem("authToken");
+    const storedToken = localStorage.getItem("authToken");
+    if (storedToken) {
+      setToken(storedToken);
+    }
   }, []);
 
   const login = useCallback(async (email, password) => {

@@ -140,3 +140,14 @@ export const getTicketStatus = async (bookingId) => {
   const response = await apiClient.get(`/files/status/${bookingId}`);
   return response.data;
 };
+
+// Content APIs
+export const getBanners = async () => {
+  const response = await apiClient.get("/content/banners");
+  return response.data;
+};
+
+export const getBackground = async () => {
+  const response = await apiClient.get("/content/background");
+  return response.data;
+};
