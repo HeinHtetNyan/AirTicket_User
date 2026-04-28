@@ -7,6 +7,7 @@ import {
   createBooking,
   addPassengers,
 } from "../utils/api";
+import Notification from "../components/Notification";
 
 const createEmptyPassenger = () => ({
   givenName: "",
@@ -18,7 +19,6 @@ const createEmptyPassenger = () => ({
   phone: "",
 });
 
-// SVG icons
 const EmailIcon = (
   <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
     <path d="M3 8l9 6 9-6" />
@@ -81,14 +81,22 @@ const formatTime = (iso) => {
   if (!iso) return "--:--";
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "--:--";
-  return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false });
+  return d.toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
 };
 
 const formatDate = (iso) => {
   if (!iso) return "--";
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "--";
-  return d.toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" });
+  return d.toLocaleDateString([], {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  });
 };
 
 const formatDateForInputDisplay = (dateValue) => {
@@ -104,12 +112,42 @@ const formatDateForInputDisplay = (dateValue) => {
 const getFlightDisplayData = (flight) => {
   const snapshot = flight?.flight_snapshot || flight;
   const isRoundTrip = flight?.type === "ROUND_TRIP";
-  const segment = isRoundTrip && snapshot?.outbound ? snapshot.outbound : snapshot;
+  const segment =
+    isRoundTrip && snapshot?.outbound ? snapshot.outbound : snapshot;
 
-  const fromCode = segment?.origin || segment?.from || segment?.fromCode || segment?.departure_airport_code || segment?.departure_iata || segment?.origin_code || "RGN";
-  const toCode = segment?.destination || segment?.to || segment?.toCode || segment?.arrival_airport_code || segment?.arrival_iata || segment?.destination_code || "BKK";
-  const fromName = segment?.origin_city || segment?.from_city || segment?.departure_city || segment?.origin_name || segment?.fromName || fromCode;
-  const toName = segment?.destination_city || segment?.to_city || segment?.arrival_city || segment?.destination_name || segment?.toName || toCode;
+  const fromCode =
+    segment?.origin ||
+    segment?.from ||
+    segment?.fromCode ||
+    segment?.departure_airport_code ||
+    segment?.departure_iata ||
+    segment?.origin_code ||
+    "RGN";
+
+  const toCode =
+    segment?.destination ||
+    segment?.to ||
+    segment?.toCode ||
+    segment?.arrival_airport_code ||
+    segment?.arrival_iata ||
+    segment?.destination_code ||
+    "BKK";
+
+  const fromName =
+    segment?.origin_city ||
+    segment?.from_city ||
+    segment?.departure_city ||
+    segment?.origin_name ||
+    segment?.fromName ||
+    fromCode;
+
+  const toName =
+    segment?.destination_city ||
+    segment?.to_city ||
+    segment?.arrival_city ||
+    segment?.destination_name ||
+    segment?.toName ||
+    toCode;
 
   return {
     fromName,
@@ -122,33 +160,54 @@ const getFlightDisplayData = (flight) => {
   };
 };
 
-// Card wrapper
 const Card = ({ children, className = "" }) => (
   <div className={`bg-white rounded-2xl border border-gray-100 shadow-sm p-6 ${className}`}>
     {children}
   </div>
 );
 
-export default function BookingForm({ selectedFlights = [], tripType, initialAdults = 1 }) {
+export default function BookingForm({
+  selectedFlights = [],
+  tripType,
+  initialAdults = 1,
+}) {
   const navigate = useNavigate();
   const normalizedAdults = Math.max(1, Number(initialAdults) || 1);
 
   const [contact, setContact] = useState({
-    givenName: "", lastName: "", email: "", country: "", phone: "", id: null, createdAt: null,
+    givenName: "",
+    lastName: "",
+    email: "",
+    country: "",
+    phone: "",
+    id: null,
+    createdAt: null,
   });
+
   const [contactExists, setContactExists] = useState(false);
   const [isLoadingContact, setIsLoadingContact] = useState(true);
   const [error, setError] = useState(null);
   const [isSavingContact, setIsSavingContact] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
-  const [passenger, setPassenger] = useState(() => Array.from({ length: normalizedAdults }, createEmptyPassenger));
+  const [passenger, setPassenger] = useState(() =>
+    Array.from({ length: normalizedAdults }, createEmptyPassenger)
+  );
   const [isConfirming, setIsConfirming] = useState(false);
+
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+
+  const [notification, setNotification] = useState({
+    type: "",
+    message: "",
+  });
 
   useEffect(() => {
     const fetchContact = async () => {
       try {
         setIsLoadingContact(true);
         const existingContact = await getMyContact();
+
         setContact({
           givenName: existingContact.given_name,
           lastName: existingContact.last_name,
@@ -158,6 +217,7 @@ export default function BookingForm({ selectedFlights = [], tripType, initialAdu
           id: existingContact.id,
           createdAt: existingContact.created_at,
         });
+
         setContactExists(true);
       } catch {
         setContactExists(false);
@@ -165,6 +225,7 @@ export default function BookingForm({ selectedFlights = [], tripType, initialAdu
         setIsLoadingContact(false);
       }
     };
+
     fetchContact();
   }, []);
 
@@ -177,6 +238,7 @@ export default function BookingForm({ selectedFlights = [], tripType, initialAdu
     try {
       setIsSavingContact(true);
       setError(null);
+
       await createContact({
         given_name: contact.givenName,
         last_name: contact.lastName,
@@ -184,10 +246,23 @@ export default function BookingForm({ selectedFlights = [], tripType, initialAdu
         country_of_residence: contact.country,
         phone_number: contact.phone,
       });
+
       setContactExists(true);
       setIsEditMode(false);
+
+      setNotification({
+        type: "success",
+        message: "Contact created successfully.",
+      });
     } catch (err) {
-      setError(err.response?.data?.message || "Failed to create contact");
+      const message =
+        err.response?.data?.message || "Failed to create contact";
+
+      setError(message);
+      setNotification({
+        type: "error",
+        message,
+      });
     } finally {
       setIsSavingContact(false);
     }
@@ -197,6 +272,7 @@ export default function BookingForm({ selectedFlights = [], tripType, initialAdu
     try {
       setIsSavingContact(true);
       setError(null);
+
       await updateContact({
         given_name: contact.givenName,
         last_name: contact.lastName,
@@ -204,9 +280,22 @@ export default function BookingForm({ selectedFlights = [], tripType, initialAdu
         country_of_residence: contact.country,
         phone_number: contact.phone,
       });
+
       setIsEditMode(false);
+
+      setNotification({
+        type: "success",
+        message: "Contact details updated successfully.",
+      });
     } catch (err) {
-      setError(err.response?.data?.message || "Failed to update contact");
+      const message =
+        err.response?.data?.message || "Failed to update contact";
+
+      setError(message);
+      setNotification({
+        type: "error",
+        message,
+      });
     } finally {
       setIsSavingContact(false);
     }
@@ -225,29 +314,82 @@ export default function BookingForm({ selectedFlights = [], tripType, initialAdu
 
   const handleConfirm = async () => {
     if (isConfirming) return;
+
     try {
       setError(null);
-      if (!contactExists) { setError("Please create a contact first"); return; }
-      if (!passenger.length || !passenger[0].givenName) { setError("Please add at least one passenger"); return; }
+
+      if (!contactExists) {
+        setShowConfirmModal(false);
+        setError("Please create a contact first");
+        setNotification({
+          type: "warning",
+          message: "Please create a contact first.",
+        });
+        return;
+      }
+
+      if (!passenger.length || !passenger[0].givenName) {
+        setShowConfirmModal(false);
+        setError("Please add at least one passenger");
+        setNotification({
+          type: "warning",
+          message: "Please add at least one passenger.",
+        });
+        return;
+      }
+
       setIsConfirming(true);
 
       const outboundFlight = selectedFlights[0];
-      if (!outboundFlight) { setError("No flight selected"); return; }
+
+      if (!outboundFlight) {
+        setShowConfirmModal(false);
+        setError("No flight selected");
+        setNotification({
+          type: "error",
+          message: "No flight selected.",
+        });
+        return;
+      }
 
       const flightSnapshot = outboundFlight.flight_snapshot || outboundFlight;
+
       const bookingPayload = {
-        type: outboundFlight.type || (tripType === "round-trip" ? "ROUND_TRIP" : "ONE_WAY"),
+        type:
+          outboundFlight.type ||
+          (tripType === "round-trip" ? "ROUND_TRIP" : "ONE_WAY"),
         adults: passenger.length,
-        bundle_key: outboundFlight.bundle_key || outboundFlight.external_flight_id,
-        airline_code: flightSnapshot.outbound?.airline_code || flightSnapshot.airline_code,
-        flight_number: flightSnapshot.outbound?.flight_number || flightSnapshot.flight_number,
+        bundle_key:
+          outboundFlight.bundle_key || outboundFlight.external_flight_id,
+        airline_code:
+          flightSnapshot.outbound?.airline_code || flightSnapshot.airline_code,
+        flight_number:
+          flightSnapshot.outbound?.flight_number || flightSnapshot.flight_number,
         flight_snapshot: flightSnapshot,
       };
 
-      const bookingResponse = await createBooking(bookingPayload);
-      if (!bookingResponse.booking_id) { setError("Failed to get booking ID"); return; }
+      console.log("===== CONFIRM BOOKING CLICKED =====");
+      console.log("CONTACT INFO:", contact);
+      console.log("PASSENGER INFO:", passenger);
+      console.log("SELECTED FLIGHTS:", selectedFlights);
+      console.log("TRIP TYPE:", tripType);
+      console.log("BOOKING PAYLOAD:", bookingPayload);
 
-      await addPassengers(bookingResponse.booking_id, {
+      const bookingResponse = await createBooking(bookingPayload);
+
+      console.log("BOOKING RESPONSE:", bookingResponse);
+
+      if (!bookingResponse.booking_id) {
+        setShowConfirmModal(false);
+        setError("Failed to get booking ID");
+        setNotification({
+          type: "error",
+          message: "Failed to get booking ID.",
+        });
+        return;
+      }
+
+      const passengersPayload = {
         passengers: passenger.map((p) => ({
           booking_id: bookingResponse.booking_id,
           given_name: p.givenName,
@@ -258,11 +400,34 @@ export default function BookingForm({ selectedFlights = [], tripType, initialAdu
           nationality: p.nationality,
           phone_number: p.phone,
         })),
+      };
+
+      console.log("PASSENGERS PAYLOAD:", passengersPayload);
+
+      await addPassengers(bookingResponse.booking_id, passengersPayload);
+
+      console.log("===== BOOKING SUCCESS =====");
+      console.log("FINAL BOOKING ID:", bookingResponse.booking_id);
+
+      setNotification({
+        type: "success",
+        message: "Booking created successfully.",
       });
 
-      navigate("/profile");
+      setShowConfirmModal(false);
+      setShowSuccessModal(true);
     } catch (err) {
-      setError(err.response?.data?.message || "Failed to complete booking");
+      const message =
+        err.response?.data?.message || "Failed to complete booking";
+
+      console.error("BOOKING ERROR:", err?.response?.data || err);
+
+      setShowConfirmModal(false);
+      setError(message);
+      setNotification({
+        type: "error",
+        message,
+      });
     } finally {
       setIsConfirming(false);
     }
@@ -271,7 +436,9 @@ export default function BookingForm({ selectedFlights = [], tripType, initialAdu
   if (isLoadingContact) {
     return (
       <div className="min-h-screen bg-blue-50 flex items-center justify-center">
-        <p className="text-gray-500 text-sm animate-pulse">Loading booking information...</p>
+        <p className="text-gray-500 text-sm animate-pulse">
+          Loading booking information...
+        </p>
       </div>
     );
   }
@@ -279,9 +446,18 @@ export default function BookingForm({ selectedFlights = [], tripType, initialAdu
   if (!selectedFlights || selectedFlights.length === 0) {
     return (
       <div className="min-h-screen bg-blue-50 flex items-center justify-center">
+        <Notification
+          type={notification.type}
+          message={notification.message}
+          onClose={() => setNotification({ type: "", message: "" })}
+        />
+
         <div className="bg-white rounded-2xl shadow-sm border border-red-100 p-10 text-center">
           <p className="text-red-500 font-medium">No flight selected</p>
-          <button onClick={() => navigate(-1)} className="mt-4 text-sm text-blue-500 underline">
+          <button
+            onClick={() => navigate(-1)}
+            className="mt-4 text-sm text-blue-500 underline"
+          >
             Go back and select a flight
           </button>
         </div>
@@ -291,11 +467,18 @@ export default function BookingForm({ selectedFlights = [], tripType, initialAdu
 
   return (
     <div className="min-h-screen bg-blue-50 py-10 px-4">
-      <div className="max-w-3xl mx-auto space-y-5">
+      <Notification
+        type={notification.type}
+        message={notification.message}
+        onClose={() => setNotification({ type: "", message: "" })}
+      />
 
-        {/* Header */}
+      <div className="max-w-3xl mx-auto space-y-5">
         <div className="flex justify-between items-center mb-2">
-          <h1 className="text-2xl font-bold text-gray-900">Review & Passenger Info</h1>
+          <h1 className="text-2xl font-bold text-gray-900">
+            Review & Passenger Info
+          </h1>
+
           <button
             onClick={() => navigate(-1)}
             className="text-sm text-blue-500 hover:text-blue-600 font-medium transition"
@@ -304,19 +487,26 @@ export default function BookingForm({ selectedFlights = [], tripType, initialAdu
           </button>
         </div>
 
-        {/* Selected Flights */}
         <Card>
-          <h2 className="text-sm font-semibold text-gray-700 mb-4">Your Selected Flight</h2>
+          <h2 className="text-sm font-semibold text-gray-700 mb-4">
+            Your Selected Flight
+          </h2>
+
           <div className="divide-y divide-gray-100">
             {selectedFlights.map((f, i) => {
               const d = getFlightDisplayData(f);
+
               return (
-                <div key={i} className="flex items-center justify-between py-3 first:pt-0 last:pb-0">
+                <div
+                  key={i}
+                  className="flex items-center justify-between py-3 first:pt-0 last:pb-0"
+                >
                   <p className="text-sm font-medium text-gray-800">
                     {d.fromName} ({d.fromCode})
                     {ArrowIcon}
                     {d.toName} ({d.toCode})
                   </p>
+
                   <p className="text-xs text-gray-500 whitespace-nowrap ml-4">
                     {d.date}&nbsp;&nbsp;{d.departureTime} – {d.arrivalTime}
                   </p>
@@ -326,18 +516,34 @@ export default function BookingForm({ selectedFlights = [], tripType, initialAdu
           </div>
         </Card>
 
-        {/* Contact Details */}
         <Card>
           <div className="flex justify-between items-center mb-1">
-            <h2 className="text-sm font-semibold text-gray-700">Contact details</h2>
+            <h2 className="text-sm font-semibold text-gray-700">
+              Contact details
+            </h2>
+
             {contactExists && !isEditMode && (
-              <button onClick={() => setIsEditMode(true)} className="text-xs text-blue-500 hover:underline font-medium">Edit</button>
+              <button
+                onClick={() => setIsEditMode(true)}
+                className="text-xs text-blue-500 hover:underline font-medium"
+              >
+                Edit
+              </button>
             )}
+
             {isEditMode && (
-              <button onClick={() => setIsEditMode(false)} className="text-xs text-gray-400 hover:underline">Cancel</button>
+              <button
+                onClick={() => setIsEditMode(false)}
+                className="text-xs text-gray-400 hover:underline"
+              >
+                Cancel
+              </button>
             )}
           </div>
-          <p className="text-xs text-gray-400 mb-5">This is where your confirmation will be sent</p>
+
+          <p className="text-xs text-gray-400 mb-5">
+            This is where your confirmation will be sent
+          </p>
 
           {error && (
             <div className="bg-red-50 border border-red-100 text-red-500 text-xs p-3 mb-4 rounded-lg">
@@ -347,7 +553,9 @@ export default function BookingForm({ selectedFlights = [], tripType, initialAdu
 
           <div className="grid md:grid-cols-2 gap-4">
             <div>
-              <label className="text-xs text-gray-500 block mb-1.5">Given names</label>
+              <label className="text-xs text-gray-500 block mb-1.5">
+                Given names
+              </label>
               <input
                 name="givenName"
                 value={contact.givenName}
@@ -357,8 +565,11 @@ export default function BookingForm({ selectedFlights = [], tripType, initialAdu
                 className={inputBase}
               />
             </div>
+
             <div>
-              <label className="text-xs text-gray-500 block mb-1.5">Last name</label>
+              <label className="text-xs text-gray-500 block mb-1.5">
+                Last name
+              </label>
               <input
                 name="lastName"
                 value={contact.lastName}
@@ -368,8 +579,11 @@ export default function BookingForm({ selectedFlights = [], tripType, initialAdu
                 className={inputBase}
               />
             </div>
+
             <div>
-              <label className="text-xs text-gray-500 block mb-1.5">Email</label>
+              <label className="text-xs text-gray-500 block mb-1.5">
+                Email
+              </label>
               <InputWithIcon
                 icon={EmailIcon}
                 name="email"
@@ -379,8 +593,11 @@ export default function BookingForm({ selectedFlights = [], tripType, initialAdu
                 disabled={isSavingContact || (contactExists && !isEditMode)}
               />
             </div>
+
             <div>
-              <label className="text-xs text-gray-500 block mb-1.5">Country / region of residence</label>
+              <label className="text-xs text-gray-500 block mb-1.5">
+                Country / region of residence
+              </label>
               <InputWithIcon
                 icon={LocationIcon}
                 name="country"
@@ -390,8 +607,11 @@ export default function BookingForm({ selectedFlights = [], tripType, initialAdu
                 disabled={isSavingContact || (contactExists && !isEditMode)}
               />
             </div>
+
             <div className="md:col-span-2">
-              <label className="text-xs text-gray-500 block mb-1.5">Phone number</label>
+              <label className="text-xs text-gray-500 block mb-1.5">
+                Phone number
+              </label>
               <InputWithIcon
                 icon={PhoneIcon}
                 name="phone"
@@ -406,14 +626,28 @@ export default function BookingForm({ selectedFlights = [], tripType, initialAdu
           {contactExists && contact.id && (
             <div className="grid md:grid-cols-2 gap-4 mt-5 pt-5 border-t border-gray-100">
               <div>
-                <label className="text-xs text-gray-400 block mb-1.5">Contact ID</label>
-                <input type="text" value={contact.id} disabled className={inputBase} />
-              </div>
-              <div>
-                <label className="text-xs text-gray-400 block mb-1.5">Created At</label>
+                <label className="text-xs text-gray-400 block mb-1.5">
+                  Contact ID
+                </label>
                 <input
                   type="text"
-                  value={contact.createdAt ? new Date(contact.createdAt).toLocaleString() : ""}
+                  value={contact.id}
+                  disabled
+                  className={inputBase}
+                />
+              </div>
+
+              <div>
+                <label className="text-xs text-gray-400 block mb-1.5">
+                  Created At
+                </label>
+                <input
+                  type="text"
+                  value={
+                    contact.createdAt
+                      ? new Date(contact.createdAt).toLocaleString()
+                      : ""
+                  }
                   disabled
                   className={inputBase}
                 />
@@ -442,15 +676,21 @@ export default function BookingForm({ selectedFlights = [], tripType, initialAdu
           )}
         </Card>
 
-        {/* Passengers */}
         {passenger.map((p, index) => (
           <Card key={index}>
-            <h2 className="text-sm font-semibold text-gray-700 mb-1">Passenger {index + 1}</h2>
-            <p className="text-xs text-gray-400 mb-5">Passenger details must match your passport or photo ID</p>
+            <h2 className="text-sm font-semibold text-gray-700 mb-1">
+              Passenger {index + 1}
+            </h2>
+
+            <p className="text-xs text-gray-400 mb-5">
+              Passenger details must match your passport or photo ID
+            </p>
 
             <div className="grid md:grid-cols-2 gap-4">
               <div>
-                <label className="text-xs text-gray-500 block mb-1.5">Given names</label>
+                <label className="text-xs text-gray-500 block mb-1.5">
+                  Given names
+                </label>
                 <input
                   name="givenName"
                   value={p.givenName}
@@ -459,8 +699,11 @@ export default function BookingForm({ selectedFlights = [], tripType, initialAdu
                   className={inputBase}
                 />
               </div>
+
               <div>
-                <label className="text-xs text-gray-500 block mb-1.5">Last name</label>
+                <label className="text-xs text-gray-500 block mb-1.5">
+                  Last name
+                </label>
                 <input
                   name="lastName"
                   value={p.lastName}
@@ -469,8 +712,11 @@ export default function BookingForm({ selectedFlights = [], tripType, initialAdu
                   className={inputBase}
                 />
               </div>
+
               <div>
-                <label className="text-xs text-gray-500 block mb-1.5">Passport Number</label>
+                <label className="text-xs text-gray-500 block mb-1.5">
+                  Passport Number
+                </label>
                 <InputWithIcon
                   icon={PassportIcon}
                   name="passport"
@@ -479,8 +725,11 @@ export default function BookingForm({ selectedFlights = [], tripType, initialAdu
                   placeholder="Enter Passport Number"
                 />
               </div>
+
               <div>
-                <label className="text-xs text-gray-500 block mb-1.5">Gender on ID</label>
+                <label className="text-xs text-gray-500 block mb-1.5">
+                  Gender on ID
+                </label>
                 <select
                   name="gender"
                   value={p.gender}
@@ -492,12 +741,16 @@ export default function BookingForm({ selectedFlights = [], tripType, initialAdu
                   <option value="FEMALE">FEMALE</option>
                 </select>
               </div>
+
               <div>
-                <label className="text-xs text-gray-500 block mb-1.5">Date of Birth</label>
+                <label className="text-xs text-gray-500 block mb-1.5">
+                  Date of Birth
+                </label>
                 <div className="relative">
                   <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
                     {CalendarIcon}
                   </span>
+
                   <input
                     type="text"
                     value={formatDateForInputDisplay(p.dob)}
@@ -510,19 +763,27 @@ export default function BookingForm({ selectedFlights = [], tripType, initialAdu
                     }}
                     className={inputWithIconBase + " cursor-pointer"}
                   />
+
                   <input
                     id={`dob-${index}`}
                     type="date"
                     value={p.dob}
-                    onChange={(e) => handlePassengerChange(index, { target: { name: "dob", value: e.target.value } })}
+                    onChange={(e) =>
+                      handlePassengerChange(index, {
+                        target: { name: "dob", value: e.target.value },
+                      })
+                    }
                     className="absolute inset-0 opacity-0 pointer-events-none"
                     tabIndex={-1}
                     aria-hidden="true"
                   />
                 </div>
               </div>
+
               <div>
-                <label className="text-xs text-gray-500 block mb-1.5">Nationality</label>
+                <label className="text-xs text-gray-500 block mb-1.5">
+                  Nationality
+                </label>
                 <InputWithIcon
                   icon={LocationIcon}
                   name="nationality"
@@ -531,8 +792,11 @@ export default function BookingForm({ selectedFlights = [], tripType, initialAdu
                   placeholder="Enter Nationality"
                 />
               </div>
+
               <div className="md:col-span-2">
-                <label className="text-xs text-gray-500 block mb-1.5">Phone number</label>
+                <label className="text-xs text-gray-500 block mb-1.5">
+                  Phone number
+                </label>
                 <InputWithIcon
                   icon={PhoneIcon}
                   name="phone"
@@ -545,7 +809,6 @@ export default function BookingForm({ selectedFlights = [], tripType, initialAdu
           </Card>
         ))}
 
-        {/* Footer Actions */}
         <div className="flex justify-between items-center pt-2 pb-8">
           <button
             onClick={() => navigate(-1)}
@@ -553,6 +816,7 @@ export default function BookingForm({ selectedFlights = [], tripType, initialAdu
           >
             Cancel Booking
           </button>
+
           <div className="flex gap-3">
             {passenger.length < normalizedAdults && (
               <button
@@ -562,16 +826,74 @@ export default function BookingForm({ selectedFlights = [], tripType, initialAdu
                 Add Passenger
               </button>
             )}
+
             <button
-              onClick={handleConfirm}
+              onClick={() => setShowConfirmModal(true)}
               disabled={isConfirming}
               className="bg-blue-500 hover:bg-blue-600 text-white px-8 py-2.5 text-sm rounded-lg font-medium transition disabled:opacity-50 shadow-sm"
             >
-              {isConfirming ? "Confirming..." : "Confirm Booking"}
+              Confirm Booking
             </button>
           </div>
         </div>
       </div>
+
+      {showConfirmModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+          <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
+            <h2 className="text-lg font-semibold text-gray-900 mb-3">
+              Confirm Booking
+            </h2>
+
+            <p className="text-sm text-gray-600 mb-6">
+              Are you sure you want to confirm this booking? This will create your booking request.
+            </p>
+
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setShowConfirmModal(false)}
+                disabled={isConfirming}
+                className="rounded-md border border-gray-200 px-5 py-2 text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-60"
+              >
+                Cancel
+              </button>
+
+              <button
+                onClick={handleConfirm}
+                disabled={isConfirming}
+                className="rounded-md bg-blue-600 px-5 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-60"
+              >
+                {isConfirming ? "Confirming..." : "Confirm Upload"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showSuccessModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+          <div className="w-full max-w-md rounded-lg bg-white p-7 text-center shadow-xl">
+            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-green-100 text-green-600 text-2xl">
+              ✓
+            </div>
+
+            <h2 className="text-lg font-semibold text-gray-900">
+              Booking Successfully
+            </h2>
+
+            <p className="mt-2 text-sm text-gray-500">
+              Your booking has been created successfully.
+            </p>
+
+            <button
+              onClick={() => navigate("/profile")}
+              className="mt-6 w-full rounded-md bg-blue-600 py-2.5 text-sm font-medium text-white hover:bg-blue-700"
+            >
+              Done
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

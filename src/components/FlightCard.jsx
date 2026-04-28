@@ -72,7 +72,7 @@ const FlightCard = ({ flight, onSelect }) => {
       </div>
 
       <div className="flex items-center justify-between md:justify-end gap-4 md:gap-6 shrink-0">
-        <p className="text-2xl font-bold text-slate-700 whitespace-nowrap">
+        <p className="text-base md:text-lg font-semibold text-slate-700 whitespace-nowrap">
           {priceDisplay}
         </p>
 

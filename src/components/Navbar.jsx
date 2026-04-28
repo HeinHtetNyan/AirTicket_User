@@ -5,12 +5,13 @@ import SignIn from "../Pages/SignIn";
 const NavBar = () => {
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
   const location = useLocation();
 
   useEffect(() => {
     const token = localStorage.getItem("authToken");
     setIsLoggedIn(!!token);
-  }, [isLoginOpen, location]); // Added location dependency to update on route change
+  }, [location]);
 
   useEffect(() => {
     const authPages = ["/forgot-password", "/reset-password", "/verify-email"];
@@ -19,22 +20,48 @@ const NavBar = () => {
     }
   }, [location.pathname]);
 
+  const showSuccessToast = () => {
+    setSuccessMessage("Welcome back! You signed in successfully");
+
+    setTimeout(() => {
+      setSuccessMessage("");
+    }, 3000);
+  };
+
   const handleLogout = () => {
     localStorage.removeItem("authToken");
     setIsLoggedIn(false);
+    setSuccessMessage("");
   };
 
   const handleLoginClose = (value) => {
     setIsLoginOpen(value);
-    // Check if login was successful
+
     const token = localStorage.getItem("authToken");
+
     if (token && !value) {
       setIsLoggedIn(true);
+      showSuccessToast();
     }
   };
 
   return (
     <header className="sticky top-0 z-50 bg-white border-b border-gray-200 shadow-sm">
+      {successMessage && (
+        <div className="fixed top-3 right-6 z-[9999] bg-white border border-green-200 shadow-xl rounded-xl px-5 py-3 flex items-center gap-3 animate-fade-in">
+
+          {/* Icon */}
+          <div className="w-6 h-6 flex items-center justify-center rounded-full bg-green-100 text-green-600">
+            ✓
+          </div>
+
+          {/* Text */}
+          <span className="text-green-700 text-sm font-medium">
+            {successMessage}
+          </span>
+        </div>
+      )}
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           <Link to="/" className="flex items-center gap-3">

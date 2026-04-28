@@ -1,12 +1,15 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { getCustomerMe, updateCustomerMe } from "../utils/api";
+import Notification from "../components/Notification";
 
 function splitFullName(fullName = "") {
   const parts = String(fullName).trim().split(/\s+/).filter(Boolean);
+
   if (parts.length === 0) {
     return { firstName: "", lastName: "" };
   }
+
   if (parts.length === 1) {
     return { firstName: parts[0], lastName: "" };
   }
@@ -19,10 +22,18 @@ function splitFullName(fullName = "") {
 
 function EditInfo() {
   const navigate = useNavigate();
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
+
+  // ✅ NEW notification state
+  const [notification, setNotification] = useState({
+    type: "",
+    message: "",
+  });
+
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -43,7 +54,11 @@ function EditInfo() {
           phone: customer?.phone || "",
         });
       } catch (err) {
-        setError(err?.response?.data?.message || err.message || "Failed to load profile");
+        setError(
+          err?.response?.data?.message ||
+            err.message ||
+            "Failed to load profile"
+        );
       } finally {
         setLoading(false);
       }
@@ -54,15 +69,15 @@ function EditInfo() {
 
   const onChange = (e) => {
     const { name, value } = e.target;
-    setSuccess("");
+
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
     setSaving(true);
     setError("");
-    setSuccess("");
 
     const full_name = [formData.firstName, formData.lastName]
       .map((value) => value.trim())
@@ -76,21 +91,47 @@ function EditInfo() {
         phone: formData.phone.trim(),
       });
 
-      setSuccess("Profile updated successfully");
-      navigate("/profile");
+      // ✅ SUCCESS NOTIFICATION
+      setNotification({
+        type: "success",
+        message: "Profile updated successfully.",
+      });
+
+      // delay navigation so user can see toast
+      setTimeout(() => {
+        navigate("/profile");
+      }, 1000);
     } catch (err) {
-      setError(err?.response?.data?.message || err.message || "Failed to update profile");
+      // ❌ ERROR NOTIFICATION
+      setNotification({
+        type: "error",
+        message:
+          err?.response?.data?.message ||
+          err.message ||
+          "Failed to update profile",
+      });
     } finally {
       setSaving(false);
     }
   };
 
   if (loading) {
-    return <div className="max-w-4xl mx-auto p-8 text-sm text-gray-600">Loading profile...</div>;
+    return (
+      <div className="max-w-4xl mx-auto p-8 text-sm text-gray-600">
+        Loading profile...
+      </div>
+    );
   }
 
   return (
     <div className="max-w-4xl mx-auto p-8">
+      {/* ✅ Notification */}
+      <Notification
+        type={notification.type}
+        message={notification.message}
+        onClose={() => setNotification({ type: "", message: "" })}
+      />
+
       <div className="mb-8">
         <h1 className="text-2xl font-semibold">Edit Profile</h1>
         <p className="text-sm text-gray-500">
@@ -102,63 +143,55 @@ function EditInfo() {
         <h2 className="font-medium mb-6">Personal Information</h2>
 
         {error && <p className="mb-4 text-sm text-red-600">{error}</p>}
-        {success && <p className="mb-4 text-sm text-green-600">{success}</p>}
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <label htmlFor="firstName" className="block text-sm text-gray-600 mb-1">
+            <label className="block text-sm text-gray-600 mb-1">
               First Name
             </label>
             <input
-              id="firstName"
               name="firstName"
-              type="text"
               value={formData.firstName}
               onChange={onChange}
-              className="w-full border px-3 py-2 rounded focus:outline-none focus:ring-1 focus:ring-black"
+              className="w-full border px-3 py-2 rounded"
             />
           </div>
 
           <div>
-            <label htmlFor="lastName" className="block text-sm text-gray-600 mb-1">
+            <label className="block text-sm text-gray-600 mb-1">
               Last Name
             </label>
             <input
-              id="lastName"
               name="lastName"
-              type="text"
               value={formData.lastName}
               onChange={onChange}
-              className="w-full border px-3 py-2 rounded focus:outline-none focus:ring-1 focus:ring-black"
+              className="w-full border px-3 py-2 rounded"
             />
           </div>
 
           <div>
-            <label htmlFor="email" className="block text-sm text-gray-600 mb-1">
+            <label className="block text-sm text-gray-600 mb-1">
               Email Address
             </label>
             <input
-              id="email"
               name="email"
               type="email"
               value={formData.email}
               onChange={onChange}
-              className="w-full border px-3 py-2 rounded focus:outline-none focus:ring-1 focus:ring-black"
+              className="w-full border px-3 py-2 rounded"
               required
             />
           </div>
 
           <div>
-            <label htmlFor="phone" className="block text-sm text-gray-600 mb-1">
+            <label className="block text-sm text-gray-600 mb-1">
               Phone Number
             </label>
             <input
-              id="phone"
               name="phone"
-              type="text"
               value={formData.phone}
               onChange={onChange}
-              className="w-full border px-3 py-2 rounded focus:outline-none focus:ring-1 focus:ring-black"
+              className="w-full border px-3 py-2 rounded"
               required
             />
           </div>

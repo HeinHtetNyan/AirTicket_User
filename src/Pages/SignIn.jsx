@@ -37,12 +37,8 @@ export default function SignIn({ open = true, setOpen }) {
     try {
       await login(formData.email, formData.password);
       close();
-      // Navigate to home if modal, otherwise navigate via router
-      if (isModal) {
         navigate("/");
-      } else {
-        navigate("/");
-      }
+      
     } catch (err) {
       setError(err.message || "Login failed");
     }

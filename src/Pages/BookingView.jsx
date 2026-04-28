@@ -5,6 +5,7 @@ import {
   getSecureTicket,
   getTicketStatus,
 } from "../utils/api";
+import Notification from "../components/Notification";
 
 export default function BookingView() {
   const navigate = useNavigate();
@@ -16,6 +17,11 @@ export default function BookingView() {
   const [downloading, setDownloading] = useState(false);
   const [ticketStatus, setTicketStatus] = useState(null);
   const [ticketStatusLoading, setTicketStatusLoading] = useState(false);
+
+  const [notification, setNotification] = useState({
+    type: "",
+    message: "",
+  });
 
   useEffect(() => {
     const fetchBooking = async () => {
@@ -117,38 +123,42 @@ export default function BookingView() {
   };
 
   const getValue = (...values) => {
-    return values.find((value) => value !== undefined && value !== null && value !== "") || "-";
+    return (
+      values.find(
+        (value) => value !== undefined && value !== null && value !== ""
+      ) || "-"
+    );
   };
 
   const statusBadge = (status) => {
     const s = String(status || "").toUpperCase();
 
     if (s === "CONFIRMED" || s === "COMPLETED") {
-      return "bg-green-100 text-green-700";
+      return "bg-green-50 text-green-700 border border-green-200";
     }
 
     if (s === "PENDING" || s === "PROCESSING") {
-      return "bg-yellow-100 text-yellow-700";
+      return "bg-yellow-50 text-yellow-700 border border-yellow-200";
     }
 
     if (s === "CANCELLED") {
-      return "bg-red-100 text-red-700";
+      return "bg-red-50 text-red-700 border border-red-200";
     }
 
-    return "bg-gray-100 text-gray-700";
+    return "bg-gray-100 text-gray-700 border border-gray-200";
   };
 
   const paymentBadge = (status) => {
     const s = String(status || "").toUpperCase();
 
-    if (s === "PAID") return "bg-green-100 text-green-700";
-    if (s === "FAILED") return "bg-red-100 text-red-700";
+    if (s === "PAID") return "bg-green-50 text-green-700 border border-green-200";
+    if (s === "FAILED") return "bg-red-50 text-red-700 border border-red-200";
 
     if (s === "PENDING" || s === "UNPAID") {
-      return "bg-yellow-100 text-yellow-700";
+      return "bg-yellow-50 text-yellow-700 border border-yellow-200";
     }
 
-    return "bg-gray-100 text-gray-700";
+    return "bg-gray-100 text-gray-700 border border-gray-200";
   };
 
   const tripTypeLabel = useMemo(() => {
@@ -218,8 +228,16 @@ export default function BookingView() {
 
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
+
+      setNotification({
+        type: "success",
+        message: "Ticket downloaded successfully.",
+      });
     } catch (err) {
-      alert("Failed to download ticket: " + (err.message || "Unknown error"));
+      setNotification({
+        type: "error",
+        message: "Failed to download ticket.",
+      });
     } finally {
       setDownloading(false);
     }
@@ -257,13 +275,13 @@ export default function BookingView() {
     );
 
     return (
-      <section className="border-t border-gray-200 px-6 py-6">
-        <h3 className="mb-5 text-2xl font-semibold text-gray-900">{title}</h3>
+      <section className="bg-white rounded-2xl border border-gray-100 shadow-sm px-6 py-6">
+        <h3 className="mb-5 text-lg font-bold text-slate-800">{title}</h3>
 
-        <div className="grid grid-cols-1 gap-y-6 md:grid-cols-3 md:gap-x-12">
+        <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
           <div>
-            <p className="text-sm text-gray-500">Airline & Flight</p>
-            <p className="text-lg font-medium text-gray-900">
+            <p className="text-xs text-slate-400 mb-1">Airline & Flight</p>
+            <p className="text-sm font-semibold text-slate-800">
               {[airlineCode !== "-" ? airlineCode : "", flightNumber !== "-" ? flightNumber : ""]
                 .filter(Boolean)
                 .join("-") || "-"}
@@ -271,36 +289,36 @@ export default function BookingView() {
           </div>
 
           <div>
-            <p className="text-sm text-gray-500">Route</p>
-            <p className="text-lg font-medium text-gray-900">
+            <p className="text-xs text-slate-400 mb-1">Route</p>
+            <p className="text-sm font-semibold text-slate-800">
               {origin} → {destination}
             </p>
           </div>
 
           <div>
-            <p className="text-sm text-gray-500">Departure</p>
-            <p className="text-lg font-medium text-gray-900">
+            <p className="text-xs text-slate-400 mb-1">Departure</p>
+            <p className="text-sm font-semibold text-slate-800">
               {formatDateTime(departureTime)}
             </p>
           </div>
 
           <div>
-            <p className="text-sm text-gray-500">Arrival</p>
-            <p className="text-lg font-medium text-gray-900">
+            <p className="text-xs text-slate-400 mb-1">Arrival</p>
+            <p className="text-sm font-semibold text-slate-800">
               {formatDateTime(arrivalTime)}
             </p>
           </div>
 
           <div>
-            <p className="text-sm text-gray-500">Duration</p>
-            <p className="text-lg font-medium text-gray-900">
+            <p className="text-xs text-slate-400 mb-1">Duration</p>
+            <p className="text-sm font-semibold text-slate-800">
               {formatDuration(data.duration_minutes || data.duration)}
             </p>
           </div>
 
           <div>
-            <p className="text-sm text-gray-500">Airline Name</p>
-            <p className="text-lg font-medium text-gray-900">{airlineName}</p>
+            <p className="text-xs text-slate-400 mb-1">Airline Name</p>
+            <p className="text-sm font-semibold text-slate-800">{airlineName}</p>
           </div>
         </div>
       </section>
@@ -309,34 +327,50 @@ export default function BookingView() {
 
   if (loading) {
     return (
-      <div className="mx-auto w-full max-w-6xl px-6 py-8 text-sm text-gray-600 md:px-10">
-        Loading booking detail...
+      <div className="min-h-screen bg-blue-50 flex items-center justify-center">
+        <p className="text-sm text-slate-500 animate-pulse">
+          Loading booking detail...
+        </p>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="mx-auto w-full max-w-6xl px-6 py-8 md:px-10">
-        <div className="rounded border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-          {error}
-        </div>
+      <div className="min-h-screen bg-blue-50 px-4 py-10">
+        <Notification
+          type={notification.type}
+          message={notification.message}
+          onClose={() => setNotification({ type: "", message: "" })}
+        />
 
-        <button
-          type="button"
-          onClick={() => navigate(-1)}
-          className="mt-4 rounded border border-gray-300 bg-white px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-        >
-          Back
-        </button>
+        <div className="max-w-5xl mx-auto bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+          <div className="rounded-xl border border-red-100 bg-red-50 p-4 text-sm text-red-600">
+            {error}
+          </div>
+
+          <button
+            type="button"
+            onClick={() => navigate(-1)}
+            className="mt-4 rounded-lg bg-slate-900 px-5 py-2 text-sm text-white hover:bg-slate-800"
+          >
+            Back
+          </button>
+        </div>
       </div>
     );
   }
 
   if (!booking) {
     return (
-      <div className="mx-auto w-full max-w-6xl px-6 py-8 text-sm text-gray-600 md:px-10">
-        Booking not found.
+      <div className="min-h-screen bg-blue-50 flex items-center justify-center">
+        <Notification
+          type={notification.type}
+          message={notification.message}
+          onClose={() => setNotification({ type: "", message: "" })}
+        />
+
+        <p className="text-sm text-slate-500">Booking not found.</p>
       </div>
     );
   }
@@ -344,80 +378,88 @@ export default function BookingView() {
   const { outbound, inbound, oneWay } = flightData;
 
   return (
-    <div className="mx-auto w-full max-w-6xl px-6 py-8 text-gray-800 md:px-10">
-      <div className="mb-5 flex items-center justify-between">
-        <button
-          type="button"
-          onClick={() => navigate(-1)}
-          className="rounded border border-gray-300 bg-white px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-        >
-          Back
-        </button>
-      </div>
+    <div className="min-h-screen bg-blue-50 px-4 py-10 text-slate-800">
+      <Notification
+        type={notification.type}
+        message={notification.message}
+        onClose={() => setNotification({ type: "", message: "" })}
+      />
 
-      <div className="overflow-hidden rounded-lg border border-gray-300 bg-white">
-        <div className="flex items-center justify-between border-b border-gray-300 px-6 py-6">
-          <div>
-            <h1 className="text-3xl font-semibold text-gray-900">
-              Booking {booking.booking_code || "-"}
-            </h1>
-            <p className="mt-1 text-base text-gray-500">
-              Booked on {formatDate(booking.created_at)}
-            </p>
-          </div>
-
-          <span
-            className={
-              "inline-flex items-center rounded-full px-4 py-1.5 text-sm font-semibold " +
-              statusBadge(booking.status)
-            }
+      <div className="max-w-5xl mx-auto space-y-5">
+        <div className="flex items-center justify-between">
+          <button
+            type="button"
+            onClick={() => navigate(-1)}
+            className="text-2xl text-slate-500 hover:text-slate-800"
           >
-            {booking.status || "-"}
-          </span>
+            ←
+          </button>
         </div>
 
-        <section className="px-6 py-6">
-          <h2 className="mb-5 text-2xl font-semibold text-gray-900">
-            Booking Information
-          </h2>
-
-          <div className="grid grid-cols-1 gap-y-6 md:grid-cols-3 md:gap-x-12">
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+          <div className="flex items-center justify-between border-b border-gray-100 px-6 py-6">
             <div>
-              <p className="text-sm text-gray-500">Booking Code</p>
-              <p className="text-xl font-semibold text-gray-900">
-                {booking.booking_code || "-"}
+              <h1 className="text-2xl font-bold text-slate-800">
+                Booking {booking.booking_code || "-"}
+              </h1>
+              <p className="mt-1 text-sm text-slate-400">
+                Booked on {formatDate(booking.created_at)}
               </p>
             </div>
 
-            <div>
-              <p className="text-sm text-gray-500">Booking ID</p>
-              <p className="break-all text-base text-gray-900">
-                {booking.booking_id || booking.id || "-"}
-              </p>
-            </div>
-
-            <div>
-              <p className="text-sm text-gray-500">Trip Type</p>
-              <p className="text-xl font-semibold text-gray-900">
-                {tripTypeLabel}
-              </p>
-            </div>
-
-            <div>
-              <p className="text-sm text-gray-500">Number of Adults</p>
-              <p className="text-xl font-semibold text-gray-900">
-                {booking.adults ?? 1}
-              </p>
-            </div>
-
-            <div>
-              <p className="text-sm text-gray-500">Estimate Price (MMK)</p>
-              <p className="text-xl font-semibold text-gray-900">
-                {getEstimatePriceMMK()}
-              </p>
-            </div>
+            <span
+              className={
+                "inline-flex items-center rounded-full px-4 py-1.5 text-sm font-semibold " +
+                statusBadge(booking.status)
+              }
+            >
+              {booking.status || "-"}
+            </span>
           </div>
-        </section>
+
+          <section className="px-6 py-6">
+            <h2 className="mb-5 text-lg font-bold text-slate-800">
+              Booking Information
+            </h2>
+
+            <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
+              <div>
+                <p className="text-xs text-slate-400 mb-1">Booking Code</p>
+                <p className="text-sm font-semibold text-slate-800">
+                  {booking.booking_code || "-"}
+                </p>
+              </div>
+
+              <div>
+                <p className="text-xs text-slate-400 mb-1">Booking ID</p>
+                <p className="break-all text-sm font-semibold text-slate-800">
+                  {booking.booking_id || booking.id || "-"}
+                </p>
+              </div>
+
+              <div>
+                <p className="text-xs text-slate-400 mb-1">Trip Type</p>
+                <p className="text-sm font-semibold text-slate-800">
+                  {tripTypeLabel}
+                </p>
+              </div>
+
+              <div>
+                <p className="text-xs text-slate-400 mb-1">Number of Adults</p>
+                <p className="text-sm font-semibold text-slate-800">
+                  {booking.adults ?? 1}
+                </p>
+              </div>
+
+              <div>
+                <p className="text-xs text-slate-400 mb-1">Estimate Price (MMK)</p>
+                <p className="text-sm font-semibold text-slate-800">
+                  {getEstimatePriceMMK()}
+                </p>
+              </div>
+            </div>
+          </section>
+        </div>
 
         {(outbound || oneWay) && (
           <FlightSection
@@ -429,23 +471,23 @@ export default function BookingView() {
         {inbound && <FlightSection title="Inbound Flight" data={inbound} />}
 
         {!outbound && !inbound && !oneWay && (
-          <section className="border-t border-gray-200 px-6 py-6">
-            <h3 className="mb-4 text-2xl font-semibold text-gray-900">
+          <section className="bg-white rounded-2xl border border-gray-100 shadow-sm px-6 py-6">
+            <h3 className="mb-4 text-lg font-bold text-slate-800">
               Flight Information
             </h3>
-            <div className="rounded border border-yellow-200 bg-yellow-50 p-4 text-sm text-yellow-700">
+            <div className="rounded-xl border border-yellow-100 bg-yellow-50 p-4 text-sm text-yellow-700">
               No flight details found in this booking.
             </div>
           </section>
         )}
 
-        <section className="border-t border-gray-200 px-6 py-6">
-          <h3 className="mb-4 text-2xl font-semibold text-gray-900">
+        <section className="bg-white rounded-2xl border border-gray-100 shadow-sm px-6 py-6">
+          <h3 className="mb-5 text-lg font-bold text-slate-800">
             Passengers
           </h3>
 
           {passengers.length === 0 && (
-            <div className="rounded border border-gray-200 bg-gray-50 p-4 text-sm text-gray-600">
+            <div className="rounded-xl border border-gray-100 bg-gray-50 p-4 text-sm text-slate-500">
               No passengers found.
             </div>
           )}
@@ -461,51 +503,51 @@ export default function BookingView() {
               return (
                 <div
                   key={p.id || idx}
-                  className="rounded border border-gray-300 p-4"
+                  className="rounded-2xl border border-gray-100 bg-slate-50 p-5"
                 >
-                  <h4 className="mb-3 text-lg font-semibold text-gray-900">
+                  <h4 className="mb-4 text-base font-bold text-slate-800">
                     Passenger {idx + 1}
                   </h4>
 
-                  <div className="grid grid-cols-1 gap-y-4 md:grid-cols-3 md:gap-x-10">
+                  <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
                     <div>
-                      <p className="text-sm text-gray-500">Full Name</p>
-                      <p className="text-lg font-medium text-gray-900">
+                      <p className="text-xs text-slate-400 mb-1">Full Name</p>
+                      <p className="text-sm font-semibold text-slate-800">
                         {fullName}
                       </p>
                     </div>
 
                     <div>
-                      <p className="text-sm text-gray-500">Passport Number</p>
-                      <p className="text-lg font-medium text-gray-900">
+                      <p className="text-xs text-slate-400 mb-1">Passport Number</p>
+                      <p className="text-sm font-semibold text-slate-800">
                         {p.passport_number || p.passport || "-"}
                       </p>
                     </div>
 
                     <div>
-                      <p className="text-sm text-gray-500">Gender</p>
-                      <p className="text-lg font-medium text-gray-900">
+                      <p className="text-xs text-slate-400 mb-1">Gender</p>
+                      <p className="text-sm font-semibold text-slate-800">
                         {p.gender || "-"}
                       </p>
                     </div>
 
                     <div>
-                      <p className="text-sm text-gray-500">Date of Birth</p>
-                      <p className="text-lg font-medium text-gray-900">
+                      <p className="text-xs text-slate-400 mb-1">Date of Birth</p>
+                      <p className="text-sm font-semibold text-slate-800">
                         {formatDate(p.date_of_birth || p.dob)}
                       </p>
                     </div>
 
                     <div>
-                      <p className="text-sm text-gray-500">Nationality</p>
-                      <p className="text-lg font-medium text-gray-900">
+                      <p className="text-xs text-slate-400 mb-1">Nationality</p>
+                      <p className="text-sm font-semibold text-slate-800">
                         {p.nationality || "-"}
                       </p>
                     </div>
 
                     <div>
-                      <p className="text-sm text-gray-500">Phone Number</p>
-                      <p className="text-lg font-medium text-gray-900">
+                      <p className="text-xs text-slate-400 mb-1">Phone Number</p>
+                      <p className="text-sm font-semibold text-slate-800">
                         {p.phone_number || p.phone || "-"}
                       </p>
                     </div>
@@ -516,19 +558,19 @@ export default function BookingView() {
           </div>
         </section>
 
-        <section className="border-t border-gray-200 px-6 py-6">
-          <div className="mb-4 flex items-center justify-between">
-            <h3 className="text-2xl font-semibold text-gray-900">
+        <section className="bg-white rounded-2xl border border-gray-100 shadow-sm px-6 py-6">
+          <div className="mb-5 flex items-center justify-between">
+            <h3 className="text-lg font-bold text-slate-800">
               Payment & Status
             </h3>
           </div>
 
-          <div className="grid grid-cols-1 gap-y-4 md:grid-cols-3 md:gap-x-12">
+          <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
             <div>
-              <p className="text-sm text-gray-500">Payment Status</p>
+              <p className="text-xs text-slate-400 mb-2">Payment Status</p>
               <span
                 className={
-                  "mt-1 inline-flex items-center rounded-full px-3 py-1 text-sm font-semibold " +
+                  "inline-flex items-center rounded-full px-3 py-1 text-sm font-semibold " +
                   paymentBadge(booking.payment_status)
                 }
               >
@@ -537,10 +579,10 @@ export default function BookingView() {
             </div>
 
             <div>
-              <p className="text-sm text-gray-500">Booking Status</p>
+              <p className="text-xs text-slate-400 mb-2">Booking Status</p>
               <span
                 className={
-                  "mt-1 inline-flex items-center rounded-full px-3 py-1 text-sm font-semibold " +
+                  "inline-flex items-center rounded-full px-3 py-1 text-sm font-semibold " +
                   statusBadge(booking.status)
                 }
               >
@@ -549,27 +591,27 @@ export default function BookingView() {
             </div>
 
             <div>
-              <p className="text-sm text-gray-500">Booked Date</p>
-              <p className="text-lg font-semibold text-gray-900">
+              <p className="text-xs text-slate-400 mb-1">Booked Date</p>
+              <p className="text-sm font-semibold text-slate-800">
                 {formatDateTime(booking.created_at)}
               </p>
             </div>
           </div>
         </section>
 
-        <section className="border-t border-gray-200 px-6 py-6">
-          <h3 className="mb-4 text-2xl font-semibold text-gray-900">
+        <section className="bg-white rounded-2xl border border-gray-100 shadow-sm px-6 py-6">
+          <h3 className="mb-5 text-lg font-bold text-slate-800">
             Ticket File
           </h3>
 
           {ticketStatusLoading ? (
-            <div className="rounded border border-gray-200 bg-gray-50 p-4 text-sm text-gray-600">
+            <div className="rounded-xl border border-gray-100 bg-gray-50 p-4 text-sm text-slate-500">
               Loading ticket status...
             </div>
           ) : ticketStatus?.has_ticket ? (
             <div className="space-y-4">
-              <div className="rounded border border-green-200 bg-green-50 p-4">
-                <p className="mb-2 text-sm font-medium text-green-700">
+              <div className="rounded-xl border border-green-100 bg-green-50 p-4">
+                <p className="mb-2 text-sm font-semibold text-green-700">
                   Ticket Uploaded
                 </p>
 
@@ -584,14 +626,14 @@ export default function BookingView() {
               <button
                 disabled={downloading}
                 onClick={handleDownloadTicket}
-                className="rounded bg-blue-600 px-4 py-2 text-sm text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+                className="rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {downloading ? "Downloading..." : "Download Ticket"}
               </button>
             </div>
           ) : (
-            <div className="rounded border border-yellow-200 bg-yellow-50 p-4">
-              <p className="text-sm font-medium text-yellow-700">
+            <div className="rounded-xl border border-yellow-100 bg-yellow-50 p-4">
+              <p className="text-sm font-semibold text-yellow-700">
                 No Ticket Uploaded Yet
               </p>
               <p className="mt-1 text-xs text-yellow-600">

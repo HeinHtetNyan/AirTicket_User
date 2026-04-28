@@ -1,5 +1,20 @@
 import { useEffect, useState } from "react";
 
+const asiaDestinations = [
+  { city: "Bangkok", code: "BKK" },
+  { city: "Yangon", code: "RGN" },
+  { city: "Mandalay", code: "MDL" },
+  { city: "Singapore", code: "SIN" },
+  { city: "Tokyo", code: "NRT" },
+  { city: "Seoul", code: "ICN" },
+  { city: "Kuala Lumpur", code: "KUL" },
+  { city: "Phuket", code: "HKT" },
+  { city: "Chiang Mai", code: "CNX" },
+  { city: "Hong Kong", code: "HKG" },
+  { city: "Taipei", code: "TPE" },
+  { city: "Osaka", code: "KIX" },
+];
+
 const airportMap = {
   bangkok: "BKK",
   bkk: "BKK",
@@ -11,13 +26,20 @@ const airportMap = {
   sin: "SIN",
   tokyo: "NRT",
   nrt: "NRT",
-  narita: "NRT",
   seoul: "ICN",
   icn: "ICN",
-  london: "LHR",
-  lhr: "LHR",
-  paris: "CDG",
-  cdg: "CDG",
+  "kuala lumpur": "KUL",
+  kul: "KUL",
+  phuket: "HKT",
+  hkt: "HKT",
+  "chiang mai": "CNX",
+  cnx: "CNX",
+  "hong kong": "HKG",
+  hkg: "HKG",
+  taipei: "TPE",
+  tpe: "TPE",
+  osaka: "KIX",
+  kix: "KIX",
 };
 
 const getAirportCode = (input) => {
@@ -25,17 +47,13 @@ const getAirportCode = (input) => {
 
   const value = input.trim().toLowerCase();
 
-  if (airportMap[value]) {
-    return airportMap[value];
-  }
+  if (airportMap[value]) return airportMap[value];
 
   const matchedCity = Object.keys(airportMap).find((city) =>
     value.includes(city)
   );
 
-  if (matchedCity) {
-    return airportMap[matchedCity];
-  }
+  if (matchedCity) return airportMap[matchedCity];
 
   return input.trim().toUpperCase();
 };
@@ -63,26 +81,14 @@ const formatDisplayDate = (value) => {
 };
 
 const LocationIcon = (
-  <svg
-    className="w-5 h-5"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    viewBox="0 0 24 24"
-  >
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
     <path d="M12 21s-6-5.33-6-10a6 6 0 1112 0c0 4.67-6 10-6 10z" />
     <circle cx="12" cy="11" r="2" />
   </svg>
 );
 
 const CalendarIcon = (
-  <svg
-    className="w-5 h-5"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    viewBox="0 0 24 24"
-  >
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
     <rect x="3" y="4" width="18" height="18" rx="2" />
     <line x1="16" y1="2" x2="16" y2="6" />
     <line x1="8" y1="2" x2="8" y2="6" />
@@ -91,13 +97,7 @@ const CalendarIcon = (
 );
 
 const SearchIcon = (
-  <svg
-    className="w-5 h-5"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    viewBox="0 0 24 24"
-  >
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
     <circle cx="11" cy="11" r="7" />
     <path d="M20 20l-3.5-3.5" />
   </svg>
@@ -112,6 +112,8 @@ const SearchForm = ({
   const [searchData, setSearchData] = useState(() =>
     makeInitialSearchData(initialValues)
   );
+
+  const [activeField, setActiveField] = useState(null);
 
   useEffect(() => {
     if (!initialValues) return;
@@ -140,9 +142,17 @@ const SearchForm = ({
     onSearch(payload);
   };
 
+  const handleDestinationSelect = (item) => {
+    setSearchData((prev) => ({
+      ...prev,
+      [activeField]: item.city,
+    }));
+    setActiveField(null);
+  };
+
   return (
     <div className="max-w-6xl mx-auto px-4 relative z-20">
-      <div className="bg-white rounded-[22px] shadow-[0_18px_45px_rgba(15,23,42,0.14)] p-8">
+      <div className="bg-white rounded-[22px] shadow-[0_18px_45px_rgba(15,23,42,0.14)] p-8 relative">
         <div className="flex items-center gap-8 mb-8">
           {["round-trip", "one-way"].map((type) => (
             <label
@@ -178,6 +188,7 @@ const SearchForm = ({
                   type="text"
                   placeholder="City or Airport"
                   value={searchData.from}
+                  onFocus={() => setActiveField("from")}
                   onChange={(e) =>
                     setSearchData({ ...searchData, from: e.target.value })
                   }
@@ -196,6 +207,7 @@ const SearchForm = ({
                   type="text"
                   placeholder="City or Airport"
                   value={searchData.to}
+                  onFocus={() => setActiveField("to")}
                   onChange={(e) =>
                     setSearchData({ ...searchData, to: e.target.value })
                   }
@@ -317,6 +329,42 @@ const SearchForm = ({
               </div>
             </div>
           </div>
+
+          {activeField && (
+            <div className="absolute left-8 right-8 top-[145px] bg-white rounded-xl shadow-2xl border border-gray-200 z-50 p-5">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-base font-semibold text-slate-700">
+                  Popular Destination
+                </h3>
+
+                <button
+                  type="button"
+                  onClick={() => setActiveField(null)}
+                  className="text-gray-400 hover:text-gray-600 text-2xl leading-none"
+                >
+                  ×
+                </button>
+              </div>
+
+              <div className="flex items-center gap-4 mb-4">
+                <span className="text-sm text-gray-500">Asia</span>
+                <div className="h-px bg-gray-200 flex-1"></div>
+              </div>
+
+              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3 max-h-72 overflow-y-auto pr-1">
+                {asiaDestinations.map((item) => (
+                  <button
+                    key={item.code}
+                    type="button"
+                    onClick={() => handleDestinationSelect(item)}
+                    className="border border-gray-300 rounded-lg px-4 py-3 text-sm font-medium text-gray-600 hover:border-blue-500 hover:text-blue-600 hover:bg-blue-50 transition"
+                  >
+                    {item.city}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="mt-7">
             <button
