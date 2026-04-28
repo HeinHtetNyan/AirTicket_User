@@ -1,11 +1,12 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { resendVerificationEmail } from "../utils/api";
-import { FaEnvelope, FaLock, FaUser, FaPhoneAlt } from "react-icons/fa";
+import { FaEnvelope, FaLock, FaUser, FaPhoneAlt, FaTimes } from "react-icons/fa";
 
 export default function SignIn({ open = true, setOpen }) {
   const [screen, setScreen] = useState("login");
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     full_name: "",
     phone: "",
@@ -36,7 +37,12 @@ export default function SignIn({ open = true, setOpen }) {
     try {
       await login(formData.email, formData.password);
       close();
-      window.location.reload();
+      // Navigate to home if modal, otherwise navigate via router
+      if (isModal) {
+        navigate("/");
+      } else {
+        navigate("/");
+      }
     } catch (err) {
       setError(err.message || "Login failed");
     }
@@ -86,15 +92,37 @@ export default function SignIn({ open = true, setOpen }) {
   return (
     <div
       className={`${
-        isModal ? "fixed inset-0 bg-black/50 backdrop-blur-sm" : ""
-      } flex items-center justify-center z-50 p-4`}
+        isModal
+          ? "fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+          : "flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4"
+      }`}
       onClick={isModal ? close : undefined}
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden"
+        className={`bg-white rounded-2xl shadow-2xl overflow-hidden ${
+          isModal ? "w-full max-w-md" : "w-full max-w-md"
+        }`}
       >
-        <div className="flex border-b border-gray-200 bg-gray-50">
+        {/* Header */}
+        <div className={`flex items-center justify-between px-8 pt-6 ${
+          isModal ? "border-b border-gray-200" : ""
+        }`}>
+          <h2 className="text-2xl font-bold text-gray-900">
+            {screen === "login" ? "Welcome Back" : "Create Account"}
+          </h2>
+          {isModal && (
+            <button
+              onClick={close}
+              className="text-gray-400 hover:text-gray-600 transition"
+            >
+              <FaTimes size={20} />
+            </button>
+          )}
+        </div>
+
+        {/* Tab Navigation */}
+        <div className={`flex border-b border-gray-200 ${!isModal ? "bg-gray-50" : ""}`}>
           <button
             onClick={() => {
               setScreen("login");
@@ -103,7 +131,7 @@ export default function SignIn({ open = true, setOpen }) {
             }}
             className={`flex-1 py-4 text-sm font-semibold transition-all ${
               screen === "login"
-                ? "border-b-2 border-gray-900 text-gray-900 bg-white"
+                ? "border-b-2 border-blue-600 text-blue-600 bg-white"
                 : "text-gray-600 hover:text-gray-900"
             }`}
           >
@@ -117,7 +145,7 @@ export default function SignIn({ open = true, setOpen }) {
             }}
             className={`flex-1 py-4 text-sm font-semibold transition-all ${
               screen === "register"
-                ? "border-b-2 border-gray-900 text-gray-900 bg-white"
+                ? "border-b-2 border-blue-600 text-blue-600 bg-white"
                 : "text-gray-600 hover:text-gray-900"
             }`}
           >
@@ -145,7 +173,7 @@ export default function SignIn({ open = true, setOpen }) {
                     type="email"
                     value={formData.email}
                     onChange={onChange}
-                    className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition"
+                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
                     placeholder="you@example.com"
                     required
                   />
@@ -163,7 +191,7 @@ export default function SignIn({ open = true, setOpen }) {
                     type="password"
                     value={formData.password}
                     onChange={onChange}
-                    className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition"
+                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
                     placeholder="Enter your password"
                     required
                   />
@@ -173,7 +201,7 @@ export default function SignIn({ open = true, setOpen }) {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-gray-900 text-white py-2.5 rounded-lg font-semibold hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                className="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-3 rounded-lg font-semibold hover:from-blue-700 hover:to-blue-800 disabled:opacity-50 disabled:cursor-not-allowed transition transform hover:scale-105"
               >
                 {loading ? "Signing In..." : "Sign In"}
               </button>
@@ -181,7 +209,13 @@ export default function SignIn({ open = true, setOpen }) {
               <div className="text-center">
                 <Link
                   to="/forgot-password"
-                  className="text-sm text-gray-600 hover:text-gray-900 font-medium transition"
+                  className="text-sm text-blue-600 hover:text-blue-700 font-medium transition"
+                  onClick={(e) => {
+                    if (isModal) {
+                      e.preventDefault();
+                      close();
+                    }
+                  }}
                 >
                   Forgot your password?
                 </Link>
@@ -202,7 +236,7 @@ export default function SignIn({ open = true, setOpen }) {
                     type="text"
                     value={formData.full_name}
                     onChange={onChange}
-                    className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition"
+                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
                     placeholder="Name"
                     required
                   />
@@ -220,7 +254,7 @@ export default function SignIn({ open = true, setOpen }) {
                     type="tel"
                     value={formData.phone}
                     onChange={onChange}
-                    className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition"
+                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
                     placeholder="+1 (555) 123-4567"
                     required
                   />
@@ -238,7 +272,7 @@ export default function SignIn({ open = true, setOpen }) {
                     type="email"
                     value={formData.email}
                     onChange={onChange}
-                    className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition"
+                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
                     placeholder="Email"
                     required
                   />
@@ -256,7 +290,7 @@ export default function SignIn({ open = true, setOpen }) {
                     type="password"
                     value={formData.password}
                     onChange={onChange}
-                    className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition"
+                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
                     placeholder="Create a password"
                     required
                   />
@@ -274,7 +308,7 @@ export default function SignIn({ open = true, setOpen }) {
                     type="password"
                     value={formData.confirmPassword}
                     onChange={onChange}
-                    className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition"
+                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
                     placeholder="Confirm your password"
                     required
                   />
@@ -284,7 +318,7 @@ export default function SignIn({ open = true, setOpen }) {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-gray-900 text-white py-2.5 rounded-lg font-semibold hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                className="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-3 rounded-lg font-semibold hover:from-blue-700 hover:to-blue-800 disabled:opacity-50 disabled:cursor-not-allowed transition transform hover:scale-105"
               >
                 {loading ? "Creating Account..." : "Create Account"}
               </button>
@@ -314,7 +348,7 @@ export default function SignIn({ open = true, setOpen }) {
                 type="button"
                 onClick={handleResendVerification}
                 disabled={resendLoading}
-                className="w-full bg-gray-800 text-white py-2.5 rounded-lg font-semibold hover:bg-gray-700 disabled:opacity-50 transition mb-3"
+                className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50 transition mb-3"
               >
                 {resendLoading ? "Resending..." : "Resend Verification Email"}
               </button>
@@ -332,7 +366,7 @@ export default function SignIn({ open = true, setOpen }) {
                     confirmPassword: "",
                   });
                 }}
-                className="w-full border-2 border-gray-300 text-gray-900 py-2.5 rounded-lg font-semibold hover:bg-gray-50 transition"
+                className="w-full border-2 border-gray-300 text-gray-900 py-3 rounded-lg font-semibold hover:bg-gray-50 transition"
               >
                 Back to Sign In
               </button>
