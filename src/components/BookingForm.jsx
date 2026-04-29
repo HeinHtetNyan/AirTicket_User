@@ -863,7 +863,7 @@ export default function BookingForm({
                 disabled={isConfirming}
                 className="rounded-md bg-blue-600 px-5 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-60"
               >
-                {isConfirming ? "Confirming..." : "Confirm Upload"}
+                {isConfirming ? "Confirming..." : "Confirm Booking"}
               </button>
             </div>
           </div>
