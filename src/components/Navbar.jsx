@@ -64,18 +64,18 @@ const NavBar = () => {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
-          <Link to="/" className="flex items-center gap-3">
+          <Link to="/" className="flex items-center gap-2 sm:gap-3">
             <img
               src="/Logo.png"
               alt="Infinity logo"
-              className="w-25 h-25 object-contain"
+              className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 object-contain"
             />
-            <span className="text-[20px] font-semibold text-[#1f5d99]">
+            <span className="text-[14px] sm:text-[16px] md:text-[20px] font-semibold text-[#1f5d99]">
               InfinityDigital
             </span>
           </Link>
 
-          <nav className="flex items-center space-x-3">
+          <nav className="flex items-center gap-2 sm:space-x-3">
             {isLoggedIn ? (
               <>
                 <Link
@@ -101,7 +101,7 @@ const NavBar = () => {
 
                 <button
                   onClick={handleLogout}
-                  className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-4 py-2 rounded-full font-medium hover:from-blue-700 hover:to-blue-800 transition hidden md:block"
+                  className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-4 py-2 rounded-full font-medium hover:from-blue-700 hover:to-blue-800 transition"
                 >
                   Logout
                 </button>
@@ -109,7 +109,7 @@ const NavBar = () => {
             ) : (
               <button
                 onClick={() => setIsLoginOpen(true)}
-                className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-4 py-2 rounded-full font-medium hover:from-blue-700 hover:to-blue-800 transition hidden md:block"
+                className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-3 py-2 sm:px-4 sm:py-2 rounded-full font-medium hover:from-blue-700 hover:to-blue-800 transition text-sm sm:text-base whitespace-nowrap"
               >
                 Signup/Login
               </button>

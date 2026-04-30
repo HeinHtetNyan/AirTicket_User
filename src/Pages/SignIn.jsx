@@ -208,7 +208,6 @@ export default function SignIn({ open = true, setOpen }) {
                   className="text-sm text-blue-600 hover:text-blue-700 font-medium transition"
                   onClick={(e) => {
                     if (isModal) {
-                      e.preventDefault();
                       close();
                     }
                   }}
