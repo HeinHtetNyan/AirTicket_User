@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link, useLocation } from "react-router";
+import { Link, useLocation, useNavigate } from "react-router";
 import SignIn from "../Pages/SignIn";
 
 const NavBar = () => {
@@ -7,6 +7,7 @@ const NavBar = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
   const location = useLocation();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const token = localStorage.getItem("authToken");
@@ -32,6 +33,7 @@ const NavBar = () => {
     localStorage.removeItem("authToken");
     setIsLoggedIn(false);
     setSuccessMessage("");
+    navigate("/");
   };
 
   const handleLoginClose = (value) => {
