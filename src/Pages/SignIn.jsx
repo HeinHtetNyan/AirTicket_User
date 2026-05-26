@@ -37,10 +37,16 @@ export default function SignIn({ open = true, setOpen }) {
     try {
       await login(formData.email, formData.password);
       close();
-        navigate("/");
-      
+      navigate("/");
     } catch (err) {
-      setError(err.message || "Login failed");
+      const status = err?.response?.status;
+      const detail = err?.response?.data?.detail || err.message || "Login failed";
+      if (status === 403 && detail.toLowerCase().includes("not verified")) {
+        setVerificationPending(true);
+        setScreen("verify");
+      } else {
+        setError(detail);
+      }
     }
   };
 
@@ -63,7 +69,14 @@ export default function SignIn({ open = true, setOpen }) {
       setVerificationPending(true);
       setScreen("verify");
     } catch (err) {
-      setError(err.message || "Signup failed");
+      const detail = err?.response?.data?.detail || err.message || "Signup failed";
+      if (detail.toLowerCase().includes("already registered")) {
+        setVerificationPending(true);
+        setScreen("verify");
+        resendVerificationEmail({ email: formData.email }).catch(() => {});
+      } else {
+        setError(detail);
+      }
     }
   };
 
