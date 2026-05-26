@@ -46,6 +46,12 @@ export default function SignIn({ open = true, setOpen }) {
       if (status === 403 && detail.toLowerCase().includes("not verified")) {
         setVerificationPending(true);
         setScreen("verify");
+      } else if (status === 404) {
+        setError("No account found with this email address. Please sign up first.");
+      } else if (status === 401) {
+        setError("Incorrect password. Please try again.");
+      } else if (status === 403 && detail.toLowerCase().includes("inactive")) {
+        setError("Your account has been deactivated. Please contact support.");
       } else {
         setError(detail);
       }
