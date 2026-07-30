@@ -1,6 +1,6 @@
 const stats = [
-  { value: "500+", label: "Airlines" },
-  { value: "200+", label: "Countries" },
+  { value: "300+", label: "Airlines" },
+  { value: "120+", label: "Countries" },
   { value: "5M+", label: "Bookings" },
   { value: "24/7", label: "Support" },
 ];
